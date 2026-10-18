@@ -33,7 +33,7 @@ namespace b2b_e_commerce_bll
         public async Task<RegistroPendiente> RegistrarUsuario(RegistroDeUsuario registroDeUsuario)
         {
             // Normalizar correo
-            var correoNormalizado = registroDeUsuario.Correo.Normalizado();
+            var correoNormalizado = UtilidadesCorreo.Normalizar(registroDeUsuario.Correo);
             var fechaYHora = DateTime.UtcNow;
 
             // Verificar que no exista un usuario con este correo la base de datos
@@ -47,7 +47,7 @@ namespace b2b_e_commerce_bll
             var registroPendientePorCorreo = await _repositorioDeRegistrosPendientes.ObtenerRegistroPendientePorCorreo(correoNormalizado);
             if (registroPendientePorCorreo != null && registroPendientePorCorreo.FechaExpiracion > fechaYHora)
             {
-                throw new CorreoDuplicadoException("Ya existe una solicitud de registro pendiente para este correo electrónico.");
+                throw new CorreoDuplicadoException("Ya existe una solicitud de registro pendiente activa para este correo electrónico.");
             }
 
             // Crear el modelo de registro pendiente
@@ -79,7 +79,7 @@ namespace b2b_e_commerce_bll
         public async Task<string> Login(LoginDeUsuario loginDeUsuario)
         {
             // Normalizar correo
-            var correoNormalizado = loginDeUsuario.Correo.Normalizado();
+            var correoNormalizado = UtilidadesCorreo.Normalizar(loginDeUsuario.Correo);
             var usuario = await _repositorioDeUsuarios.ObtenerUsuarioPorCorreo(correoNormalizado);
 
             if (usuario == null || !usuario.Activo || !UtilidadesContrasena.Verificar(loginDeUsuario.Contrasena, usuario.ContrasenaHash))

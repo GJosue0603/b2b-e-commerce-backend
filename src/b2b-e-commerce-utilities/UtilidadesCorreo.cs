@@ -13,7 +13,7 @@ namespace b2b_e_commerce_utilities
             return _regex.IsMatch(correo);
         }
 
-        public static string Normalizado(this string correo)
+        public static string Normalizar(string correo)
         {
             return correo.ToLowerInvariant().Trim();
         }

@@ -6,6 +6,11 @@ namespace b2b_e_commerce_bll
     public interface IServicioDeUsuarios
     {
         Task<Usuario> ObtenerUsuarioPorId(string id);
+        Task<ResultadoPaginado<RespuestaDeUsuario>> ObtenerListaDeUsuarios(
+            bool? activo = null,
+            int numeroDePagina = 1,
+            int cantidadPorPagina = 25
+        );
     }
 
     public class ServicioDeUsuarios : IServicioDeUsuarios
@@ -20,6 +25,15 @@ namespace b2b_e_commerce_bll
         public async Task<Usuario> ObtenerUsuarioPorId(string id)
         {
             return await _repositorioDeUsuarios.ObtenerUsuarioPorId(id);
+        }
+
+        public async Task<ResultadoPaginado<RespuestaDeUsuario>> ObtenerListaDeUsuarios(
+            bool? activo = null,
+            int numeroDePagina = 1,
+            int cantidadPorPagina = 25
+        )
+        {
+            return await _repositorioDeUsuarios.ObtenerListaDeUsuarios(activo, numeroDePagina, cantidadPorPagina);
         }
     }
 }

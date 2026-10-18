@@ -54,7 +54,7 @@ namespace b2b_e_commerce_api.Controladores
 
             if (!UtilidadesContrasena.EsContrasenaValida(registroDeUsuario.Contrasena))
             {
-                return BadRequest("La contraseña debe contener al menos 8 caractéres, una mayúscula y un número.");
+                return BadRequest("La contraseña debe contener al menos 8 caractéres, una letra, una mayúscula y un número.");
             }
 
             try
