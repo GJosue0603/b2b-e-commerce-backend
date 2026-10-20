@@ -15,11 +15,9 @@ namespace b2b_e_commerce_models
         public string Nombre { get; set; }
         public string Descripcion { get; set; }
         public bool Activo { get; set; }
-
-        public colaborador CreadoPor { get; set; }
+        public Colaborador CreadoPor { get; set; }
         public DateTime FechaCreacion { get; set; }
-
-        public colaborador ModificadoPor { get; set; }
+        public Colaborador ModificadoPor { get; set; }
         public DateTime? FechaModificacion { get; set; }
     }
 }

@@ -1,7 +1,7 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using b2b_e_commerce_api;
 using b2b_e_commerce_bll.JWT;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 

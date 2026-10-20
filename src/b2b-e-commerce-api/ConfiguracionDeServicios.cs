@@ -1,11 +1,11 @@
-using System.Text;
 using b2b_e_commerce_bll;
-using b2b_e_commerce_models;
 using b2b_e_commerce_bll.JWT;
+using b2b_e_commerce_models;
 using b2b_e_commerce_repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
+using System.Text;
 
 namespace b2b_e_commerce_api
 {
@@ -57,6 +57,7 @@ namespace b2b_e_commerce_api
             // Servicios
             servicios.AddScoped<IServicioDeUsuarios, ServicioDeUsuarios>();
             servicios.AddScoped<IServicioDeAutenticacion, ServicioDeAutenticacion>();
+            servicios.AddScoped<IServicioDeProductos, ServicioDeProductos>();
 
             // Repositorios
             var mongoConnectionString = configuracion["Mongo:ConnectionString"];
@@ -68,6 +69,7 @@ namespace b2b_e_commerce_api
             servicios.AddSingleton<IMongoClient>(_ => new MongoClient(mongoConnectionString));
             servicios.AddScoped<IRepositorioDeUsuarios, RepositorioDeUsuarios>();
             servicios.AddScoped<IRepositorioDeRegistrosPendientes, RepositorioDeRegistrosPendientes>();
+            servicios.AddScoped<IRepositorioDeProductos, RepositorioDeProductos>();
 
             return servicios;
         }

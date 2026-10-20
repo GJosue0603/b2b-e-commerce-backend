@@ -16,10 +16,10 @@ namespace b2b_e_commerce_repository
         private readonly string COLLECTION_NAME = "categorias";
         private readonly IMongoCollection<Categoria> _collection;
 
-        public RepositorioDeCategorias(IMongoClient client,IConfiguration configuracion)
+        public RepositorioDeCategorias(IMongoClient client, IConfiguration configuracion)
         {
             ArgumentNullException.ThrowIfNull(client);
-;
+            ;
             var databaseName = configuracion["Mongo:Database"];
 
             if (string.IsNullOrWhiteSpace(databaseName))
