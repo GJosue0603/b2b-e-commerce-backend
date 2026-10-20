@@ -9,7 +9,7 @@ namespace b2b_e_commerce_utilities.Excepciones
 
         public CorreoDuplicadoException(string mensaje) : base(mensaje)
         {
-            
+
         }
     }
 }

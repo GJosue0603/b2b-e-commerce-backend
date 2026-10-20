@@ -1,10 +1,10 @@
+using b2b_e_commerce_models;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using b2b_e_commerce_models;
 using JsobWebToken = Microsoft.IdentityModel.JsonWebTokens;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Configuration;
 
 namespace b2b_e_commerce_bll.JWT
 {
