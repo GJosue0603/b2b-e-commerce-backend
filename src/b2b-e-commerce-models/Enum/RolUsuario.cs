@@ -9,7 +9,7 @@ namespace b2b_e_commerce_models.Enum
 
         [Description(Constantes.VENDEDOR)]
         Vendedor = 2,
-    
+
         [Description(Constantes.ADMINISTRADOR)]
         Administrador = 3
     }

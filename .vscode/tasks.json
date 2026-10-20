@@ -20,6 +20,26 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "build email-worker",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/src/b2b-e-commerce-email-worker/b2b-e-commerce-email-worker.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "clear": true
+            },
+            // Make 'build' the default command for key sequence SHIFT-COMMAND-B
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }
