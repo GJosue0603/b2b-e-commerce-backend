@@ -29,6 +29,7 @@ builder.Services.AddSingleton<IAmazonSQS>(_ =>
 });
 
 builder.Services.AddSingleton<IServicioDeCorreo, ServicioDeCorreo>();
+builder.Services.AddSingleton<IServicioDePlantillas, ServicioDePlantillas>();
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
