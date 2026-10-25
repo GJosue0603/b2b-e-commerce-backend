@@ -22,6 +22,6 @@ namespace b2b_e_commerce_models
         public Colaborador CreadoPor { get; set; }
         public DateTime FechaCreacion { get; set; }
         public Colaborador ModificadoPor { get; set; }
-        public DateTime? FechaModificacion { get; set; }
+        public DateTime FechaModificacion { get; set; }
     }
 }

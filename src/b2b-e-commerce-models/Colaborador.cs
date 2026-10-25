@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace b2b_e_commerce_models
 {
+    [BsonIgnoreExtraElements]
     public class Colaborador
     {
         [BsonId]

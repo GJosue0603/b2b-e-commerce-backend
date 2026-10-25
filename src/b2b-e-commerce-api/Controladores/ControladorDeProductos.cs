@@ -10,7 +10,6 @@ namespace b2b_e_commerce_api.Controladores
 {
     [ApiController]
     [Route("v1/productos")]
-    [Authorize]
     [Produces("application/json")]
     public class ControladorDeProductos : Controller
     {
@@ -23,7 +22,6 @@ namespace b2b_e_commerce_api.Controladores
 
         [HttpGet]
         [Route("{productoId}")]
-        [Authorize(Roles = Constantes.ADMINISTRADOR)]
         [ProducesResponseType(typeof(Producto), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> ObtenerProducto(string productoId)
         {
@@ -49,8 +47,7 @@ namespace b2b_e_commerce_api.Controladores
 
         [HttpGet]
         [Route("")]
-        [Authorize(Roles = Constantes.ADMINISTRADOR)]
-        [ProducesResponseType(typeof(List<Producto>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(ResultadoPaginado<Producto>), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> ObtenerListaDeProductos(
             bool? activo = null,
             int numeroDePagina = 1,

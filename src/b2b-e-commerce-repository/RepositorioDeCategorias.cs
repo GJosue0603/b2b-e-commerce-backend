@@ -7,8 +7,12 @@ namespace b2b_e_commerce_repository
 {
     public interface IRepositorioDeCategorias
     {
-        Task<List<Categoria>> ObtenerCategorias();
-        Task<Categoria> ObtenerCategoriaPorId(string id);
+       Task<Categoria> ObtenerCategoriaPorId(string id);
+       Task<ResultadoPaginado<Categoria>> ObtenerListaDeCategorias(
+            bool? activo = null,
+            int numeroDePagina = 1,
+            int cantidadPorPagina = 25
+        );
     }
 
     public class RepositorioDeCategorias : IRepositorioDeCategorias
@@ -29,16 +33,6 @@ namespace b2b_e_commerce_repository
 
             _collection = client.GetDatabase(databaseName).GetCollection<Categoria>(COLLECTION_NAME);
         }
-
-        public async Task<List<Categoria>> ObtenerCategorias()
-        {
-            var filter = Builders<Categoria>.Filter.Empty;
-
-            var categorias = await _collection.Find(filter).ToListAsync();
-
-            return categorias;
-        }
-
         public async Task<Categoria> ObtenerCategoriaPorId(string id)
         {
             var filter = Builders<Categoria>.Filter.Eq(c => c.Id, id);
@@ -46,6 +40,44 @@ namespace b2b_e_commerce_repository
             var categoria = await _collection.Find(filter).FirstOrDefaultAsync();
 
             return categoria;
+        }
+        public async Task<ResultadoPaginado<Categoria>> ObtenerListaDeCategorias(
+            bool? activo = null,
+            int numeroDePagina = 1,
+            int cantidadPorPagina = 25)
+        {
+            var filter = FilterDefinition<Categoria>.Empty;
+
+            if (activo.HasValue)
+            {
+                filter &= Builders<Categoria>.Filter.Eq(
+                    c => c.Activo,
+                    activo.Value);
+            }
+
+            var ordenar = Builders<Categoria>.Sort
+                .Ascending(c => c.Nombre)
+                .Ascending(c => c.Id);
+
+            int cantidadDeRegistrosAOmitir = checked(
+                (int)(((long)numeroDePagina - 1) * cantidadPorPagina));
+
+            var categoriasTask = _collection
+                .Find(filter)
+                .Sort(ordenar)
+                .Skip(cantidadDeRegistrosAOmitir)
+                .Limit(cantidadPorPagina)
+                .ToListAsync();
+
+            var cantidadTotalTask = _collection.CountDocumentsAsync(filter);
+
+            await Task.WhenAll(categoriasTask, cantidadTotalTask);
+
+            return new ResultadoPaginado<Categoria>(
+                categoriasTask.Result,
+                cantidadTotalTask.Result,
+                numeroDePagina,
+                cantidadPorPagina);
         }
     }
 
