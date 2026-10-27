@@ -3,7 +3,7 @@ services:
     image: localstack/localstack:latest
     container_name: b2b-localstack
     volumes:
-      - ./docker/localstack/init:/etc/localstack/init/ready.d
+      - "./docker/localstack/init:/etc/localstack/init/ready.d"
     ports:
       - "4567:4566"
     environment:
@@ -11,10 +11,3 @@ services:
       - AWS_DEFAULT_REGION=us-east-1
       - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?LOCALSTACK_AUTH_TOKEN is required}
       - LOCALSTACK_SSL_NO_VERIFY=1
-
-  mailpit:
-    image: axllent/mailpit:latest
-    container_name: b2b-mailpit
-    ports:
-      - "1025:1025"
-      - "8025:8025"

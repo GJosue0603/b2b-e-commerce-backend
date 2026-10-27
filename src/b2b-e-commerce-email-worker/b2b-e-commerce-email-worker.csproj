@@ -17,5 +17,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\b2b-e-commerce-models\b2b-e-commerce-models.csproj" />
+    <ProjectReference Include="..\b2b-e-commerce-utilities\b2b-e-commerce-utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Plantillas\**\*.html" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

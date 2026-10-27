@@ -13,10 +13,12 @@ namespace b2b_e_commerce_email_worker.Servicios
     public class ServicioDeCorreo : IServicioDeCorreo
     {
         private readonly IConfiguration _config;
+        private readonly IServicioDePlantillas _servicioDePlantillas;
 
-        public ServicioDeCorreo(IConfiguration config)
+        public ServicioDeCorreo(IConfiguration config, IServicioDePlantillas servicioDePlantillas)
         {
-            _config = config;
+            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _servicioDePlantillas = servicioDePlantillas ?? throw new ArgumentNullException(nameof(servicioDePlantillas));
         }
 
         public async Task EnviarCorreoAsync(MensajeDeCorreo mensaje, CancellationToken cancellationToken)
@@ -26,10 +28,21 @@ namespace b2b_e_commerce_email_worker.Servicios
             correo.From.Add(new MailboxAddress(_config["SMTP:SenderName"], _config["SMTP:SenderEmail"]));
             correo.To.Add(MailboxAddress.Parse(mensaje.Destinatario));
             correo.Subject = mensaje.Asunto;
-            correo.Body = new TextPart("plain")
+            if (mensaje.Plantilla.HasValue)
             {
-                Text = mensaje.Cuerpo
-            };
+                var html = await _servicioDePlantillas.RenderizarAsync(mensaje.Plantilla.Value, mensaje.DatosPlantilla, cancellationToken);
+                correo.Body = new TextPart("html")
+                {
+                    Text = html
+                };
+            }
+            else
+            {
+                correo.Body = new TextPart("plain")
+                {
+                    Text = mensaje.Cuerpo
+                };
+            }
 
             var host = _config["SMTP:Host"] ?? throw new InvalidOperationException("No se configuró el servidor SMTP.");
             var port = _config.GetValue<int>("SMTP:Port");

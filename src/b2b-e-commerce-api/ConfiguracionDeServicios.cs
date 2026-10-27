@@ -5,6 +5,9 @@ using b2b_e_commerce_repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
+using Amazon.SQS;
+using Amazon.Runtime;
+using b2b_e_commerce_bll.Mensajeria;
 using System.Text;
 
 namespace b2b_e_commerce_api
@@ -13,6 +16,7 @@ namespace b2b_e_commerce_api
     {
         public static IServiceCollection ConfigurarServicios(this IServiceCollection servicios, IConfiguration configuracion)
         {
+            #region JWT
             // Servicios de JWT
             var secreto = configuracion["Jwt:Secreto"];
             var emisor = configuracion["Jwt:Emisor"];
@@ -53,6 +57,29 @@ namespace b2b_e_commerce_api
                     };
             });
             servicios.AddSingleton<IProveedorDeTokens, ProveedorDeTokens>();
+            #endregion
+
+            #region SQS
+            servicios.AddSingleton<IAmazonSQS>(sp =>
+            {
+                var serviceUrl = configuracion["AWS:ServiceURL"];
+                var region = configuracion["AWS:Region"];
+
+                if (string.IsNullOrWhiteSpace(serviceUrl) || string.IsNullOrWhiteSpace(region))
+                {
+                    throw new InvalidOperationException("La configuración de Amazon SQS está incompleta.");
+                }
+
+                var sqsConfig = new AmazonSQSConfig
+                {
+                    ServiceURL = serviceUrl,
+                    AuthenticationRegion = region
+                };
+
+                return new AmazonSQSClient(new BasicAWSCredentials("test", "test"), sqsConfig);
+            });
+            servicios.AddScoped<IServicioDeColaCorreos, ServicioDeColaCorreos>();
+            #endregion
 
             // Servicios
             servicios.AddScoped<IServicioDeUsuarios, ServicioDeUsuarios>();

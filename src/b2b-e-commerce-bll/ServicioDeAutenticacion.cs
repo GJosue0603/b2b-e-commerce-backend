@@ -1,4 +1,5 @@
 using b2b_e_commerce_bll.JWT;
+using b2b_e_commerce_bll.Mensajeria;
 using b2b_e_commerce_models;
 using b2b_e_commerce_repository;
 using b2b_e_commerce_utilities;
@@ -18,14 +19,17 @@ namespace b2b_e_commerce_bll
         private readonly IRepositorioDeUsuarios _repositorioDeUsuarios;
         private readonly IRepositorioDeRegistrosPendientes _repositorioDeRegistrosPendientes;
         private readonly IProveedorDeTokens _proveedorDeTokens;
+        private readonly IServicioDeColaCorreos _servicioDeColaCorreos;
 
         public ServicioDeAutenticacion(IRepositorioDeUsuarios repositorioDeUsuarios,
             IRepositorioDeRegistrosPendientes repositorioDeRegistrosPendientes,
-            IProveedorDeTokens proveedorDeTokens)
+            IProveedorDeTokens proveedorDeTokens,
+            IServicioDeColaCorreos servicioDeColaCorreos)
         {
             _repositorioDeUsuarios = repositorioDeUsuarios ?? throw new ArgumentNullException(nameof(repositorioDeUsuarios));
             _repositorioDeRegistrosPendientes = repositorioDeRegistrosPendientes ?? throw new ArgumentNullException(nameof(repositorioDeRegistrosPendientes));
             _proveedorDeTokens = proveedorDeTokens ?? throw new ArgumentNullException(nameof(proveedorDeTokens));
+            _servicioDeColaCorreos = servicioDeColaCorreos ?? throw new ArgumentNullException(nameof(servicioDeColaCorreos));
         }
 
         public async Task<RegistroPendiente> RegistrarUsuario(RegistroDeUsuario registroDeUsuario)
@@ -69,7 +73,21 @@ namespace b2b_e_commerce_bll
             // Guardar el usuario en base de datos
             var res = await _repositorioDeRegistrosPendientes.RegistrarUsuario(registroPendiente, fechaYHora);
 
-            // TODO: Enviar el cdigo por medio de correo electrónico
+            // Crear el mensaje de verificación
+            var mensajeCorreo = new MensajeDeCorreo
+            {
+                Destinatario = correoNormalizado,
+                Asunto = "Código de verificación - B2B E-Commerce",
+                Plantilla = TipoPlantillaCorreo.VerificacionRegistro,
+                DatosPlantilla = new Dictionary<string, string>
+                {
+                    { "Nombre", registroDeUsuario.Nombre },
+                    { "Codigo", codigo }
+                }
+            };
+
+            // Publicar el mensaje en SQS
+            await _servicioDeColaCorreos.PublicarCorreoAsync(mensajeCorreo);
 
             return res;
         }

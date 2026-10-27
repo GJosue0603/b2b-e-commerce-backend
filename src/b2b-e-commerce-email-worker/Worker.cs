@@ -119,11 +119,19 @@ namespace b2b_e_commerce_email_worker
                 throw new JsonException("No se pudo deserializar el mensaje de correo.");
             }
 
-            if (string.IsNullOrWhiteSpace(correo.Destinatario) ||
-                string.IsNullOrWhiteSpace(correo.Asunto) ||
-                string.IsNullOrWhiteSpace(correo.Cuerpo))
+            if (string.IsNullOrWhiteSpace(correo.Destinatario) || string.IsNullOrWhiteSpace(correo.Asunto))
             {
-                throw new InvalidOperationException("El mensaje de correo contiene campos obligatorios vacíos.");
+                throw new InvalidOperationException("El destinatario y el asunto son obligatorios.");
+            }
+
+            if (!correo.Plantilla.HasValue && string.IsNullOrWhiteSpace(correo.Cuerpo))
+            {
+                throw new InvalidOperationException("El mensaje debe contener un cuerpo o una plantilla.");
+            }
+
+            if (correo.Plantilla.HasValue && (correo.DatosPlantilla == null || correo.DatosPlantilla.Count == 0))
+            {
+                throw new InvalidOperationException("El mensaje con plantilla debe contener los datos necesarios.");
             }
 
             _logger.LogInformation("Mensaje de correo validado correctamente: {MessageId}", mensaje.MessageId);
