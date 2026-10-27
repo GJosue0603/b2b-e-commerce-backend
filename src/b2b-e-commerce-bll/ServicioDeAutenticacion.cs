@@ -1,6 +1,7 @@
 using b2b_e_commerce_bll.JWT;
 using b2b_e_commerce_bll.Mensajeria;
 using b2b_e_commerce_models;
+using b2b_e_commerce_models.Enum;
 using b2b_e_commerce_repository;
 using b2b_e_commerce_utilities;
 using b2b_e_commerce_utilities.Excepciones;
