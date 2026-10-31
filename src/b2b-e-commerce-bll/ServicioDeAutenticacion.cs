@@ -144,7 +144,12 @@ namespace b2b_e_commerce_bll
             if (!UtilidadesContrasena.Verificar(codigoNormalizado, registroPendiente.CodigoHash))
             {
                 // Incrementar intentos fallidos en el registro existente
-                await _repositorioDeRegistrosPendientes.IncrementarIntentosFallidos(registroPendiente);
+                var registrosActualizados = await _repositorioDeRegistrosPendientes.IncrementarIntentosFallidos(registroPendiente);
+                if (registrosActualizados == 0)
+                {
+                    throw new LimiteIntentosExcedidoException();
+                }
+
                 throw new CodigoVerificacionInvalidoException();
             }
 
@@ -180,17 +185,37 @@ namespace b2b_e_commerce_bll
             }
             catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
             {
-                await sesion.AbortTransactionAsync();
-
+                await AbortarTransaccionSiEstaActiva(sesion);
+                throw new CorreoDuplicadoException();
+            }
+            catch (MongoCommandException ex) when (ex.Code == 11000)
+            {
+                await AbortarTransaccionSiEstaActiva(sesion);
                 throw new CorreoDuplicadoException();
             }
             catch (Exception ex)
             {
-                await sesion.AbortTransactionAsync();
+                await AbortarTransaccionSiEstaActiva(sesion);
                 throw new VerificacionRegistroException("No fue posible completar la verificación del registro.", ex);
             }
 
             return MapeadorDeUsuarios.ARespuestaDeUsuario(usuario);
+        }
+
+        private static async Task AbortarTransaccionSiEstaActiva(IClientSessionHandle sesion)
+        {
+            if (!sesion.IsInTransaction)
+                return;
+
+            try
+            {
+                await sesion.AbortTransactionAsync();
+            }
+            catch (Exception)
+            {
+                // No ocultar la excepción original.
+                // Aquí se podría registrar el error en un logger.
+            }
         }
     }
 }
