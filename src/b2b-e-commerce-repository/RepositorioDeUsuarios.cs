@@ -13,6 +13,7 @@ namespace b2b_e_commerce_repository
             int numeroDePagina = 1,
             int cantidadPorPagina = 25
         );
+        Task<Usuario> InsertarUsuario(Usuario usuario, IClientSessionHandle? sesion = null);
     }
 
     public class RepositorioDeUsuarios : IRepositorioDeUsuarios
@@ -105,6 +106,20 @@ namespace b2b_e_commerce_repository
                 numeroDePagina,
                 cantidadPorPagina
             );
+        }
+
+        public async Task<Usuario> InsertarUsuario(Usuario usuario, IClientSessionHandle? sesion = null)
+        {
+            if (sesion != null)
+            {
+                await _collection.InsertOneAsync(sesion, usuario);
+            }
+            else
+            {
+                await _collection.InsertOneAsync(usuario);
+            }
+
+            return usuario;
         }
     }
 }
