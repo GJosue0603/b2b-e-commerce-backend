@@ -9,6 +9,8 @@ namespace b2b_e_commerce_repository
     {
         Task<RegistroPendiente> ObtenerRegistroPendientePorCorreo(string correo);
         Task<RegistroPendiente> RegistrarUsuario(RegistroPendiente registroPendiente, DateTime fechaYHora);
+        Task<long> IncrementarIntentosFallidos(RegistroPendiente registroPendiente, int cantidad = 1);
+        Task<long> RemoverRegistroPendiente(string id, IClientSessionHandle? sesion = null);
     }
 
     public class RepositorioDeRegistrosPendientes : IRepositorioDeRegistrosPendientes
@@ -53,6 +55,32 @@ namespace b2b_e_commerce_repository
             catch (MongoCommandException ex) when (ex.Code == 11000)
             {
                 throw new CorreoDuplicadoException("Ya existe una solicitud de registro pendiente para este correo electrónico.");
+            }
+        }
+
+        public async Task<long> IncrementarIntentosFallidos(RegistroPendiente registroPendiente, int cantidad = 1)
+        {
+            var filter = Builders<RegistroPendiente>.Filter.Eq(r => r.Correo, registroPendiente.Correo);
+            var update = Builders<RegistroPendiente>.Update.Inc(r => r.IntentosFallidos, cantidad);
+
+            var res = await _collection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = false });
+
+            return res.ModifiedCount;
+        }
+
+        public async Task<long> RemoverRegistroPendiente(string id, IClientSessionHandle? sesion = null)
+        {
+            var filter = Builders<RegistroPendiente>.Filter.Eq(r => r.Id, id);
+
+            if (sesion != null)
+            {
+                var res = await _collection.DeleteOneAsync(sesion, filter);
+                return res.DeletedCount;
+            }
+            else
+            {
+                var res = await _collection.DeleteOneAsync(filter);
+                return res.DeletedCount;
             }
         }
     }

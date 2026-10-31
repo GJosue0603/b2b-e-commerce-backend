@@ -101,5 +101,43 @@ namespace b2b_e_commerce_api.Controladores
                 return Unauthorized(ex.Message);
             }
         }
+
+        [HttpPost]
+        [Route("verificar-correo")]
+        [AllowAnonymous]
+        // [ApiExplorerSettings(IgnoreApi = true)]
+        [ProducesResponseType(typeof(RespuestaDeUsuario), (int)HttpStatusCode.OK)]
+        public async Task<IActionResult> VerificarCorreo([FromBody] VerificacionDeCorreo verificacionDeCorreo)
+        {
+            if (string.IsNullOrWhiteSpace(verificacionDeCorreo.Correo))
+            {
+                return BadRequest("El Correo es requerido.");
+            }
+
+            if (string.IsNullOrWhiteSpace(verificacionDeCorreo.Codigo))
+            {
+                return BadRequest("El Código es requerido.");
+            }
+
+            if (!UtilidadesCorreo.EsCorreoValido(verificacionDeCorreo.Correo))
+            {
+                return BadRequest("El formato del correo electrónico no es válido.");
+            }
+
+            if (verificacionDeCorreo.Codigo.Trim().Length != 6)
+            {
+                return BadRequest("El Código debe contener 6 caractéres.");
+            }
+
+            try
+            {
+                var token = await _servicioDeAutenticacion.VerificarCorreo(verificacionDeCorreo);
+                return Ok(token);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+        }
     }
 }

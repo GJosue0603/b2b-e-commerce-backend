@@ -5,6 +5,7 @@ using b2b_e_commerce_models.Enum;
 using b2b_e_commerce_repository;
 using b2b_e_commerce_utilities;
 using b2b_e_commerce_utilities.Excepciones;
+using MongoDB.Driver;
 using System.Security.Cryptography;
 
 namespace b2b_e_commerce_bll
@@ -13,6 +14,7 @@ namespace b2b_e_commerce_bll
     {
         Task<RegistroPendiente> RegistrarUsuario(RegistroDeUsuario registroDeUsuario);
         Task<string> Login(LoginDeUsuario loginDeUsuario);
+        Task<RespuestaDeUsuario> VerificarCorreo(VerificacionDeCorreo verificacionDeCorreo);
     }
 
     public class ServicioDeAutenticacion : IServicioDeAutenticacion
@@ -21,16 +23,19 @@ namespace b2b_e_commerce_bll
         private readonly IRepositorioDeRegistrosPendientes _repositorioDeRegistrosPendientes;
         private readonly IProveedorDeTokens _proveedorDeTokens;
         private readonly IServicioDeColaCorreos _servicioDeColaCorreos;
+        private readonly IMongoClient _mongoClient;
 
         public ServicioDeAutenticacion(IRepositorioDeUsuarios repositorioDeUsuarios,
             IRepositorioDeRegistrosPendientes repositorioDeRegistrosPendientes,
             IProveedorDeTokens proveedorDeTokens,
-            IServicioDeColaCorreos servicioDeColaCorreos)
+            IServicioDeColaCorreos servicioDeColaCorreos,
+            IMongoClient mongoClient)
         {
             _repositorioDeUsuarios = repositorioDeUsuarios ?? throw new ArgumentNullException(nameof(repositorioDeUsuarios));
             _repositorioDeRegistrosPendientes = repositorioDeRegistrosPendientes ?? throw new ArgumentNullException(nameof(repositorioDeRegistrosPendientes));
             _proveedorDeTokens = proveedorDeTokens ?? throw new ArgumentNullException(nameof(proveedorDeTokens));
             _servicioDeColaCorreos = servicioDeColaCorreos ?? throw new ArgumentNullException(nameof(servicioDeColaCorreos));
+            _mongoClient = mongoClient ?? throw new ArgumentNullException(nameof(mongoClient));
         }
 
         public async Task<RegistroPendiente> RegistrarUsuario(RegistroDeUsuario registroDeUsuario)
@@ -107,6 +112,75 @@ namespace b2b_e_commerce_bll
             var token = _proveedorDeTokens.CrearToken(usuario);
 
             return token;
+        }
+
+        public async Task<RespuestaDeUsuario> VerificarCorreo(VerificacionDeCorreo verificacionDeCorreo)
+        {
+            // Normalizar correo
+            var correoNormalizado = UtilidadesCorreo.Normalizar(verificacionDeCorreo.Correo);
+            var codigoNormalizado = verificacionDeCorreo.Codigo.Trim();
+            var fechaYHora = DateTime.UtcNow;
+
+            // Verificar que exista un registro pendiente para el correo proporcionado
+            var registroPendiente = await _repositorioDeRegistrosPendientes.ObtenerRegistroPendientePorCorreo(correoNormalizado);
+            if (registroPendiente == null || registroPendiente.FechaExpiracion <= fechaYHora)
+            {
+                throw new RegistroPendienteNoEncontradoException();
+            }
+
+            // Verificar que el código aún sea aceptable
+            if (registroPendiente.CodigoExpiracion <= fechaYHora)
+            {
+                throw new CodigoVerificacionExpiradoException();
+            }
+
+            // Verificar que no se haya excedido del límite de intentos fallidos
+            if (registroPendiente.IntentosFallidos >= Constantes.LIMITE_INTENTOS_FALLIDOS)
+            {
+                throw new LimiteIntentosExcedidoException();
+            }
+
+            // Validar el código proveniente del usuario contra el de Mongo
+            if (!UtilidadesContrasena.Verificar(codigoNormalizado, registroPendiente.CodigoHash))
+            {
+                // Incrementar intentos fallidos en el registro existente
+                await _repositorioDeRegistrosPendientes.IncrementarIntentosFallidos(registroPendiente);
+                throw new CodigoVerificacionInvalidoException();
+            }
+
+            // Crear usuario
+            var usuario = new Usuario
+            {
+                Nombre = registroPendiente.Nombre,
+                Apellido1 = registroPendiente.Apellido1,
+                Apellido2 = registroPendiente.Apellido2,
+                Correo = correoNormalizado,
+                ContrasenaHash = registroPendiente.ContrasenaHash,
+                Telefono = registroPendiente.Telefono,
+                Rol = UtilidadesEnums.ObtenerDescripcionEnBaseAlValor(RolUsuario.Comprador),
+                Activo = true,
+                FechaCreacion = fechaYHora,
+                FechaActualizacion = fechaYHora
+            };
+
+            using var sesion = await _mongoClient.StartSessionAsync();
+            sesion.StartTransaction();
+
+            // Se realiza una operación atómica para crear el usaurio el la base de datos a la vez que borramos el registro pendiente
+            try
+            {
+                await _repositorioDeUsuarios.InsertarUsuario(usuario, sesion);
+                await _repositorioDeRegistrosPendientes.RemoverRegistroPendiente(registroPendiente.Id, sesion);
+
+                await sesion.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await sesion.AbortTransactionAsync();
+                throw new VerificacionRegistroException();
+            }
+
+            return MapeadorDeUsuarios.ARespuestaDeUsuario(usuario);
         }
     }
 }
