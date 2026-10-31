@@ -61,6 +61,7 @@ namespace b2b_e_commerce_repository
         public async Task<long> IncrementarIntentosFallidos(RegistroPendiente registroPendiente, int cantidad = 1)
         {
             var filter = Builders<RegistroPendiente>.Filter.Eq(r => r.Correo, registroPendiente.Correo);
+            filter &= Builders<RegistroPendiente>.Filter.Lt(r => r.IntentosFallidos, Constantes.LIMITE_INTENTOS_FALLIDOS);
             var update = Builders<RegistroPendiente>.Update.Inc(r => r.IntentosFallidos, cantidad);
 
             var res = await _collection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = false });

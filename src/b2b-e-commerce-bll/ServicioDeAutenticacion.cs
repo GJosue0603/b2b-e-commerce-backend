@@ -170,14 +170,24 @@ namespace b2b_e_commerce_bll
             try
             {
                 await _repositorioDeUsuarios.InsertarUsuario(usuario, sesion);
-                await _repositorioDeRegistrosPendientes.RemoverRegistroPendiente(registroPendiente.Id, sesion);
+                var registrosEliminados = await _repositorioDeRegistrosPendientes.RemoverRegistroPendiente(registroPendiente.Id, sesion);
+                if (registrosEliminados != 1)
+                {
+                    throw new VerificacionRegistroException();
+                }
 
                 await sesion.CommitTransactionAsync();
+            }
+            catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+            {
+                await sesion.AbortTransactionAsync();
+
+                throw new CorreoDuplicadoException();
             }
             catch (Exception ex)
             {
                 await sesion.AbortTransactionAsync();
-                throw new VerificacionRegistroException();
+                throw new VerificacionRegistroException("No fue posible completar la verificación del registro.", ex);
             }
 
             return MapeadorDeUsuarios.ARespuestaDeUsuario(usuario);

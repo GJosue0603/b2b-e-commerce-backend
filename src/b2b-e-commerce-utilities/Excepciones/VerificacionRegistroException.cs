@@ -11,5 +11,11 @@ namespace b2b_e_commerce_utilities.Excepciones
         {
 
         }
+
+        public VerificacionRegistroException(string mensaje, Exception innerException)
+            : base(mensaje, innerException)
+        {
+            
+        }
     }
 }

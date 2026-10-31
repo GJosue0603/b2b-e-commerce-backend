@@ -109,6 +109,7 @@ namespace b2b_e_commerce_api.Controladores
         [ProducesResponseType(typeof(RespuestaDeUsuario), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> VerificarCorreo([FromBody] VerificacionDeCorreo verificacionDeCorreo)
         {
+            // Validar la información del usuario
             if (string.IsNullOrWhiteSpace(verificacionDeCorreo.Correo))
             {
                 return BadRequest("El Correo es requerido.");
@@ -126,17 +127,43 @@ namespace b2b_e_commerce_api.Controladores
 
             if (verificacionDeCorreo.Codigo.Trim().Length != 6)
             {
-                return BadRequest("El Código debe contener 6 caractéres.");
+                return BadRequest("El Código debe contener 6 digitos.");
             }
 
+            if (!verificacionDeCorreo.Codigo.Trim().All(char.IsDigit))
+            {
+                return BadRequest("El Código solo debe contener caractéres numéricos.");
+            }
+
+            // Verificar el correo y crear el usuario en la base de datos
             try
             {
-                var token = await _servicioDeAutenticacion.VerificarCorreo(verificacionDeCorreo);
-                return Ok(token);
+                var usuario = await _servicioDeAutenticacion.VerificarCorreo(verificacionDeCorreo);
+                return Ok(usuario);
             }
-            catch (UnauthorizedAccessException ex)
+            catch (RegistroPendienteNoEncontradoException ex)
             {
-                return Unauthorized(ex.Message);
+                return NotFound(ex.Message);
+            }
+            catch (CorreoDuplicadoException ex)
+            {
+                return Conflict(ex.Message);
+            }
+            catch (CodigoVerificacionExpiradoException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (CodigoVerificacionInvalidoException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (LimiteIntentosExcedidoException ex)
+            {
+                return StatusCode(StatusCodes.Status429TooManyRequests, ex.Message);
+            }
+            catch (VerificacionRegistroException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
     }
