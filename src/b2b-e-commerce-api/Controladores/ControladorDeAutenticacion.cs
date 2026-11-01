@@ -135,9 +135,9 @@ namespace b2b_e_commerce_api.Controladores
                 return BadRequest("El Código solo debe contener caractéres numéricos.");
             }
 
-            // Verificar el correo y crear el usuario en la base de datos
             try
             {
+                // Verificar el correo y crear el usuario en la base de datos
                 var usuario = await _servicioDeAutenticacion.VerificarCorreo(verificacionDeCorreo);
                 return Ok(usuario);
             }
@@ -162,6 +162,44 @@ namespace b2b_e_commerce_api.Controladores
                 return StatusCode(StatusCodes.Status429TooManyRequests, ex.Message);
             }
             catch (VerificacionRegistroException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("reenviar-codigo")]
+        [AllowAnonymous]
+        // [ApiExplorerSettings(IgnoreApi = true)]
+        [ProducesResponseType(typeof(RegistroPendiente), (int)HttpStatusCode.OK)]
+        public async Task<IActionResult> ReenviarCodigo([FromBody] string correo)
+        {
+            // Validar la información del usuario
+            if (string.IsNullOrWhiteSpace(correo))
+            {
+                return BadRequest("El Correo es requerido.");
+            }
+
+            if (!UtilidadesCorreo.EsCorreoValido(correo))
+            {
+                return BadRequest("El formato del correo electrónico no es válido.");
+            }
+
+            try
+            {
+                // Validar los datos y reenviar el código de verificación
+                var registroPendiente = await _servicioDeAutenticacion.ReenviarCodigo(correo);
+                return Ok(registroPendiente);
+            }
+            catch (RegistroPendienteNoEncontradoException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (CodigoVerificacionNoExpiradoException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }

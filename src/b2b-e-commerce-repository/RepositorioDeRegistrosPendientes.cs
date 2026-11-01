@@ -11,6 +11,7 @@ namespace b2b_e_commerce_repository
         Task<RegistroPendiente> RegistrarUsuario(RegistroPendiente registroPendiente, DateTime fechaYHora);
         Task<long> IncrementarIntentosFallidos(RegistroPendiente registroPendiente, int cantidad = 1);
         Task<long> RemoverRegistroPendiente(string id, IClientSessionHandle? sesion = null);
+        Task<RegistroPendiente> ActualizarRegistroDespuesDeReenviarCodigo(string correoNormalizado, string codigoHash, DateTime codigoExpiracion, int intentosFallidos, DateTime fechaYHora);
     }
 
     public class RepositorioDeRegistrosPendientes : IRepositorioDeRegistrosPendientes
@@ -83,6 +84,20 @@ namespace b2b_e_commerce_repository
                 var res = await _collection.DeleteOneAsync(filter);
                 return res.DeletedCount;
             }
+        }
+
+        public async Task<RegistroPendiente> ActualizarRegistroDespuesDeReenviarCodigo(string correoNormalizado, string codigoHash, DateTime codigoExpiracion, int intentosFallidos, DateTime fechaYHora)
+        {
+            var filter = Builders<RegistroPendiente>.Filter.Eq(r => r.Correo, correoNormalizado);
+            filter &= Builders<RegistroPendiente>.Filter.Gt(r => r.FechaExpiracion, fechaYHora);
+            var update = Builders<RegistroPendiente>.Update
+                .Set(r => r.CodigoHash, codigoHash)
+                .Set(r => r.CodigoExpiracion, codigoExpiracion)
+                .Set(r => r.IntentosFallidos, intentosFallidos);
+
+            var res = await _collection.FindOneAndUpdateAsync(filter, update, new FindOneAndUpdateOptions<RegistroPendiente> { IsUpsert = false, ReturnDocument = ReturnDocument.After });
+
+            return res;
         }
     }
 }
