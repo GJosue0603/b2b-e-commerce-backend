@@ -59,13 +59,17 @@ namespace b2b_e_commerce_api.Controladores
 
             try
             {
-                var res = await _servicioDeAutenticacion.RegistrarUsuario(registroDeUsuario);
+                await _servicioDeAutenticacion.RegistrarUsuario(registroDeUsuario);
 
                 return Created("Registro Pendiente Creado", "El registro se ha procesado, pronto recibirás un código de confirmación.");
             }
             catch (CorreoDuplicadoException ex)
             {
                 return Conflict(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
 
@@ -171,7 +175,7 @@ namespace b2b_e_commerce_api.Controladores
         [Route("reenviar-codigo")]
         [AllowAnonymous]
         // [ApiExplorerSettings(IgnoreApi = true)]
-        [ProducesResponseType(typeof(RegistroPendiente), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> ReenviarCodigo([FromBody] string correo)
         {
             // Validar la información del usuario
@@ -188,7 +192,7 @@ namespace b2b_e_commerce_api.Controladores
             try
             {
                 // Validar los datos y reenviar el código de verificación
-                var registroPendiente = await _servicioDeAutenticacion.ReenviarCodigo(correo);
+                await _servicioDeAutenticacion.ReenviarCodigo(correo);
 
                 return Ok("Se ha enviado un nuevo código de verificación.");
             }
