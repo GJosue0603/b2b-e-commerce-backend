@@ -15,6 +15,7 @@ namespace b2b_e_commerce_bll
         Task<RegistroPendiente> RegistrarUsuario(RegistroDeUsuario registroDeUsuario);
         Task<string> Login(LoginDeUsuario loginDeUsuario);
         Task<RespuestaDeUsuario> VerificarCorreo(VerificacionDeCorreo verificacionDeCorreo);
+        Task<RegistroPendiente> ReenviarCodigo(string correo);
     }
 
     public class ServicioDeAutenticacion : IServicioDeAutenticacion
@@ -78,6 +79,10 @@ namespace b2b_e_commerce_bll
 
             // Guardar el usuario en base de datos
             var res = await _repositorioDeRegistrosPendientes.RegistrarUsuario(registroPendiente, fechaYHora);
+            if (res == null)
+            {
+                throw new InvalidOperationException("No se pudo crear el registro pendiente.");
+            }
 
             // Crear el mensaje de verificación
             var mensajeCorreo = new MensajeDeCorreo
@@ -216,6 +221,55 @@ namespace b2b_e_commerce_bll
                 // No ocultar la excepción original.
                 // Aquí se podría registrar el error en un logger.
             }
+        }
+
+        public async Task<RegistroPendiente> ReenviarCodigo(string correo)
+        {
+            // Normalizar correo
+            var correoNormalizado = UtilidadesCorreo.Normalizar(correo);
+            var fechaYHora = DateTime.UtcNow;
+
+            // Verificar que exista un registro pendiente para el correo proporcionado
+            var registroPendiente = await _repositorioDeRegistrosPendientes.ObtenerRegistroPendientePorCorreo(correoNormalizado);
+            if (registroPendiente == null || registroPendiente.FechaExpiracion <= fechaYHora)
+            {
+                throw new RegistroPendienteNoEncontradoException();
+            }
+
+            // Verificar que el código aún sea aceptable
+            if (registroPendiente.CodigoExpiracion >= fechaYHora)
+            {
+                throw new CodigoVerificacionNoExpiradoException();
+            }
+
+            // Generar un nuevo código de verificación
+            var codigoNuevo = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+            var codigoNuevoHash = UtilidadesContrasena.Hashear(codigoNuevo);
+
+            // Actualizar el registro pendiente en la base de datos
+            var res = await _repositorioDeRegistrosPendientes.ActualizarRegistroDespuesDeReenviarCodigo(correoNormalizado, codigoNuevoHash, fechaYHora.AddMinutes(10), 0, fechaYHora);
+            if (res == null)
+            {
+                throw new CodigoVerificacionNoExpiradoException();
+            }
+
+            // Crear el mensaje de verificación
+            var mensajeCorreo = new MensajeDeCorreo
+            {
+                Destinatario = correoNormalizado,
+                Asunto = "Código de verificación - B2B E-Commerce",
+                Plantilla = TipoPlantillaCorreo.VerificacionRegistro,
+                DatosPlantilla = new Dictionary<string, string>
+                {
+                    { "Nombre", registroPendiente.Nombre },
+                    { "Codigo", codigoNuevo }
+                }
+            };
+
+            // Publicar el mensaje en SQS
+            await _servicioDeColaCorreos.PublicarCorreoAsync(mensajeCorreo);
+
+            return res;
         }
     }
 }
