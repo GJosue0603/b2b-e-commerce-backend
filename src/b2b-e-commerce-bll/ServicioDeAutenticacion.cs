@@ -244,10 +244,6 @@ namespace b2b_e_commerce_bll
 
             // Actualizar el registro pendiente en la base de datos
             var res = await _repositorioDeRegistrosPendientes.ActualizarRegistroDespuesDeReenviarCodigo(correoNormalizado, codigoNuevoHash, fechaYHora.AddMinutes(10), 0, fechaYHora);
-            if (res == null)
-            {
-                throw new Exception("No se pudo actualizar el registro pendiente.");
-            }
 
             // Crear el mensaje de verificación
             var mensajeCorreo = new MensajeDeCorreo

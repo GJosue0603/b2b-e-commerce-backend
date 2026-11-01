@@ -90,6 +90,7 @@ namespace b2b_e_commerce_repository
         {
             var filter = Builders<RegistroPendiente>.Filter.Eq(r => r.Correo, correoNormalizado);
             filter &= Builders<RegistroPendiente>.Filter.Gt(r => r.FechaExpiracion, fechaYHora);
+            filter &= Builders<RegistroPendiente>.Filter.Lte(r => r.CodigoExpiracion, fechaYHora);
             var update = Builders<RegistroPendiente>.Update
                 .Set(r => r.CodigoHash, codigoHash)
                 .Set(r => r.CodigoExpiracion, codigoExpiracion)

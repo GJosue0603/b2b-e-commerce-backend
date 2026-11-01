@@ -189,7 +189,8 @@ namespace b2b_e_commerce_api.Controladores
             {
                 // Validar los datos y reenviar el código de verificación
                 var registroPendiente = await _servicioDeAutenticacion.ReenviarCodigo(correo);
-                return Ok(registroPendiente);
+
+                return Ok("Se ha enviado un nuevo código de verificación.");
             }
             catch (RegistroPendienteNoEncontradoException ex)
             {
@@ -198,10 +199,6 @@ namespace b2b_e_commerce_api.Controladores
             catch (CodigoVerificacionNoExpiradoException ex)
             {
                 return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
     }
