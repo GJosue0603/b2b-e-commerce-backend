@@ -1,0 +1,12 @@
+﻿
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
+namespace b2b_e_commerce_models
+{
+    public class SolicitudDeCategoria
+    {
+        public string Nombre { get; set; }
+        public string Descripcion { get; set; }
+    }
+}

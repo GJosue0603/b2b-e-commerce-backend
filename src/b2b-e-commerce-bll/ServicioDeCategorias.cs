@@ -11,6 +11,9 @@ namespace b2b_e_commerce_bll
             int numeroDePagina = 1,
             int cantidadPorPagina = 25
         );
+        Task<Categoria> InsertarCategoria(Categoria categoria);
+        Task <Categoria> ModificarCategoria(string id, Categoria categoria);
+        Task<int> EliminarCategoria(string id, Colaborador modificador);
     }
     public class ServicioDeCategorias : IServicioDeCategorias
     {
@@ -30,6 +33,18 @@ namespace b2b_e_commerce_bll
        )
         {
             return await _repositorioDeCategorias.ObtenerListaDeCategorias(activo, numeroDePagina, cantidadPorPagina);
+        }
+        public async Task<Categoria> InsertarCategoria(Categoria categoria)
+        {
+            return await _repositorioDeCategorias.InsertarCategoria(categoria);
+        }
+        public async Task<int> EliminarCategoria(string id, Colaborador modificador)
+        {
+            return await _repositorioDeCategorias.EliminarCategoria(id, modificador);
+        }
+        public async Task<Categoria> ModificarCategoria(string id, Categoria categoria)
+        {
+            return await _repositorioDeCategorias.ModificarCategoria(id, categoria);
         }
     }
 }
