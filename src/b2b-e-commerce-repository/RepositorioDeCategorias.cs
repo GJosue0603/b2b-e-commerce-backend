@@ -7,15 +7,15 @@ namespace b2b_e_commerce_repository
 {
     public interface IRepositorioDeCategorias
     {
-       Task<Categoria> ObtenerCategoriaPorId(string id);
+       Task<Categoria?> ObtenerCategoriaPorId(string id);
        Task<ResultadoPaginado<Categoria>> ObtenerListaDeCategorias(
             bool? activo = null,
             int numeroDePagina = 1,
             int cantidadPorPagina = 25
         );
-        Task<Categoria> InsertarCategoria(Categoria categoria, IClientSessionHandle? sesion = null);
-        Task<Categoria> ModificarCategoria(string id,Categoria categoria, IClientSessionHandle? sesion = null);
-        Task<int> EliminarCategoria(string id, Colaborador modificador);
+        Task<Categoria> InsertarCategoria(Categoria categoria);
+        Task<Categoria?> ModificarCategoria(string id,Categoria categoria);
+        Task<Categoria?> DesactivarCategoria(string id, Colaborador modificador);
     }
 
     public class RepositorioDeCategorias : IRepositorioDeCategorias
@@ -36,7 +36,7 @@ namespace b2b_e_commerce_repository
 
             _collection = client.GetDatabase(databaseName).GetCollection<Categoria>(COLLECTION_NAME);
         }
-        public async Task<Categoria> ObtenerCategoriaPorId(string id)
+        public async Task<Categoria?> ObtenerCategoriaPorId(string id)
         {
             var filter = Builders<Categoria>.Filter.Eq(c => c.Id, id);
 
@@ -82,65 +82,46 @@ namespace b2b_e_commerce_repository
                 numeroDePagina,
                 cantidadPorPagina);
         }
-        public async Task<Categoria> InsertarCategoria(Categoria categoria, IClientSessionHandle? sesion = null)
+        public async Task<Categoria> InsertarCategoria(Categoria categoria)
         {
-            if (sesion != null)
-            {
-                await _collection.InsertOneAsync(sesion, categoria);
-            }
-            else
-            {
-                await _collection.InsertOneAsync(categoria);
-            }
+           await _collection.InsertOneAsync(categoria);
 
-            return categoria;
+           return categoria;
         }
-        public async Task<Categoria> ModificarCategoria(string id, Categoria categoria, IClientSessionHandle? sesion = null)
+        public async Task<Categoria?> ModificarCategoria(string id, Categoria categoria)
         {
-            var filter = Builders < Categoria>.Filter.And(Builders<Categoria>.Filter.Eq(c => c.Id, id), Builders<Categoria>.Filter.Eq(c => c.Activo, true));
+            var filter = Builders<Categoria>.Filter.Eq(c => c.Id, id) & Builders<Categoria>.Filter.Eq(c => c.Activo, true);
 
             var actualizacion = Builders<Categoria>.Update
                 .Set(c => c.Nombre, categoria.Nombre)
                 .Set(c => c.Descripcion, categoria.Descripcion)
                 .Set(c => c.ModificadoPor, categoria.ModificadoPor)
-                .Set(c => c.FechaModificacion, DateTime.UtcNow);
+                .Set(c => c.FechaModificacion, categoria.FechaModificacion);
 
-            var resultado = sesion != null ? await _collection.UpdateOneAsync(sesion, filter, actualizacion): await _collection.UpdateOneAsync(filter, actualizacion);
+            var resultado = await _collection.UpdateOneAsync(filter,actualizacion);
 
             if (resultado.MatchedCount == 0) 
             {
-                // No se encontro la categoria para actualizar
                 return null;
             }
 
             return await _collection.Find(filter).FirstOrDefaultAsync();
         }
-        public async Task<int> EliminarCategoria(string id, Colaborador modificador)
+        public async Task<Categoria?> DesactivarCategoria(string id, Colaborador modificador)
         {
-            var filter = Builders<Categoria>.Filter.Eq(c => c.Id, id);
-
-            var categoria = await _collection.Find(filter).FirstOrDefaultAsync();
-
-            if (categoria == null)
-            {
-                // La categoría no existe
-                return 0;
-            }
-            if(!categoria.Activo)
-            {
-                //La categoría ya está inactiva
-                return 2;
-            }
+            var filter = Builders<Categoria>.Filter.Eq(c => c.Id, id) & Builders<Categoria>.Filter.Eq(c => c.Activo, true);
 
             var actualizacion = Builders<Categoria>.Update
                 .Set(c => c.Activo, false)
                 .Set(c => c.ModificadoPor, modificador)
                 .Set(c => c.FechaModificacion, DateTime.UtcNow);
 
-            await _collection.UpdateOneAsync(filter, actualizacion);
+            var opciones = new FindOneAndUpdateOptions<Categoria>
+            {
+                ReturnDocument = ReturnDocument.After
+            };
 
-            // La categoría se desactivo correctamente
-            return 1;
+            return await _collection.FindOneAndUpdateAsync(filter,actualizacion,opciones);
         }
     }
 

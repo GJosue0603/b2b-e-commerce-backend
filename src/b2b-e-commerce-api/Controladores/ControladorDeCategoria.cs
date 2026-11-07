@@ -4,8 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using System.Net;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+using b2b_e_commerce_utilities;
 
 namespace b2b_e_commerce_api.Controladores
 {
@@ -15,12 +14,9 @@ namespace b2b_e_commerce_api.Controladores
     public class ControladorDeCategorias : Controller
     {
         private readonly IServicioDeCategorias _servicioDeCategorias;
-        private readonly IServicioDeUsuarios _servicioDeUsuarios;
-
-        public ControladorDeCategorias(IServicioDeCategorias servicioDeCategorias, IServicioDeUsuarios servicioDeUsuarios)
+        public ControladorDeCategorias(IServicioDeCategorias servicioDeCategorias)
         {
             _servicioDeCategorias = servicioDeCategorias ?? throw new ArgumentNullException(nameof(servicioDeCategorias));
-            _servicioDeUsuarios = servicioDeUsuarios ?? throw new ArgumentNullException(nameof(servicioDeUsuarios));
         }
 
         [HttpGet]
@@ -77,170 +73,139 @@ namespace b2b_e_commerce_api.Controladores
 
             return Ok(res);
         }
-
         [HttpPost]
-        [Route("InsertarCategoria")]
+        [Route("")]
         [Authorize(Roles = Constantes.ADMINISTRADOR)]
-        [ProducesResponseType(typeof(string), (int)HttpStatusCode.Created)]
+        [ProducesResponseType(typeof(Categoria), (int)HttpStatusCode.Created)]
         public async Task<IActionResult> InsertarCategoria([FromBody] SolicitudDeCategoria solicitud)
         {
             if (solicitud == null)
             {
-                return BadRequest("La categoria es requerida");
-            }
-            if (string.IsNullOrWhiteSpace(solicitud.Nombre))
-            {
-                return BadRequest("El nombre de la categoria es requerido");
+                return BadRequest("La categoría es requerida.");
             }
 
-            var usuarioId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            if (string.IsNullOrWhiteSpace(solicitud.Nombre))
+            {
+                return BadRequest("El nombre de la categoría es requerido.");
+            }
+
+            var usuarioId = UtilidadesUsuario.ObtenerIdUsuarioEnBaseAJWT(User);
+
             if (string.IsNullOrWhiteSpace(usuarioId))
             {
                 return Unauthorized("No se pudo identificar al usuario autenticado.");
             }
-            var usuario = await _servicioDeUsuarios.ObtenerUsuarioPorId(usuarioId);
-
-            if (usuario == null)
+            try
             {
-                return Unauthorized("No se encontró el usuario autenticado.");
+                var categoria = await _servicioDeCategorias.InsertarCategoria(solicitud, usuarioId);
+                return StatusCode((int)HttpStatusCode.Created, categoria);
             }
-
-            var fechaActual = DateTime.UtcNow;
-
-            var categoria = new Categoria
+            catch (UnauthorizedAccessException ex)
             {
-                Nombre = solicitud.Nombre,
-                Descripcion = solicitud.Descripcion,
-                Activo = true,
-                CreadoPor = new Colaborador {
-                    Id = usuario.Id,
-                    Nombre = usuario.Nombre,
-                    Rol = usuario.Rol
-                },
-                FechaCreacion = fechaActual,
-                FechaModificacion = fechaActual
-            };
-
-            var res = await _servicioDeCategorias.InsertarCategoria(categoria);
-
-            return StatusCode((int)HttpStatusCode.Created, res);
+                return Unauthorized(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPut]
-        [Route("ModificarCategoria/{categoriaId}")]
+        [Route("{categoriaId}")]
         [Authorize(Roles = Constantes.ADMINISTRADOR)]
         [ProducesResponseType(typeof(Categoria), (int)HttpStatusCode.OK)]
-        public async Task<IActionResult> ModificarCategoria(string categoriaId, [FromBody] SolicitudDeCategoria solicitud) 
-        {
-            if(string.IsNullOrWhiteSpace(categoriaId))
-            {
-                return BadRequest("El ID de la categoria es requerido.");
-            }
-
-            if(!ObjectId.TryParse(categoriaId, out var id))
-            {
-                return BadRequest("El ID de la categoria no se encuentra.");
-            }
-
-            if(solicitud == null)
-            {
-                return BadRequest("La categoria es requerida.");
-            }
-
-            if(string.IsNullOrWhiteSpace(solicitud.Nombre))
-            {
-                return BadRequest("El nombre de la categoria es requerido.");
-            }
-
-            var usuarioId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-
-            if(string.IsNullOrWhiteSpace(usuarioId))
-            {
-                return Unauthorized("No se pudo identificar al usuario autenticado.");
-            }
-
-            var usuario = await _servicioDeUsuarios.ObtenerUsuarioPorId(usuarioId);
-
-            if(usuario == null || !usuario.Activo)
-            {
-                return Unauthorized("No se encontró un usuario activo.");
-            }
-
-            var fechaActual = DateTime.UtcNow;
-
-            var categoria = new Categoria
-            {
-                Nombre = solicitud.Nombre,
-                Descripcion = solicitud.Descripcion,
-                ModificadoPor = new Colaborador
-                {
-                    Id = usuario.Id,
-                    Nombre = usuario.Nombre,
-                    Rol = usuario.Rol
-                },
-                FechaModificacion = fechaActual
-            };
-
-            var resultado = await _servicioDeCategorias.ModificarCategoria(categoriaId, categoria);
-
-            if(resultado == null)
-            {
-                return NotFound("La categoria no existe o ya esta inactiva.");
-            }
-
-            return Ok(resultado);
-        }
-
-        [HttpDelete]
-        [Route("EliminarCategoria/{categoriaId}")]
-        [Authorize(Roles = Constantes.ADMINISTRADOR)]
-        [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
-        public async Task<IActionResult> EliminarCategoria(string categoriaId)
+        public async Task<IActionResult> ModificarCategoria(string categoriaId,[FromBody] SolicitudDeCategoria solicitud)
         {
             if (string.IsNullOrWhiteSpace(categoriaId))
             {
-                return BadRequest("El ID de la Categoria es requerida.");
+                return BadRequest("El ID de la categoría es requerido.");
             }
 
-            if (!ObjectId.TryParse(categoriaId, out var id))
+            if (!ObjectId.TryParse(categoriaId, out _))
             {
-                return BadRequest("El ID de la categoria no se encuentra o ya esta eliminado.");
+                return BadRequest("El ID de la categoría no es válido.");
             }
 
-            var usuarioId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            if (solicitud == null)
+            {
+                return BadRequest("La categoría es requerida.");
+            }
+
+            if (string.IsNullOrWhiteSpace(solicitud.Nombre))
+            {
+                return BadRequest("El nombre de la categoría es requerido.");
+            }
+
+            var usuarioId = UtilidadesUsuario.ObtenerIdUsuarioEnBaseAJWT(User);
 
             if (string.IsNullOrWhiteSpace(usuarioId))
             {
                 return Unauthorized("No se pudo identificar al usuario autenticado.");
             }
 
-            var usuario = await _servicioDeUsuarios.ObtenerUsuarioPorId(usuarioId);
-
-            if (usuario == null || !usuario.Activo)
+            try
             {
-                return Unauthorized("No se encontró un usuario activo.");
+                var categoria = await _servicioDeCategorias.ModificarCategoria(categoriaId, solicitud, usuarioId);
+
+                if (categoria == null)
+                {
+                    return NotFound("La categoría no existe o está inactiva.");
+                }
+
+                return Ok(categoria);
             }
-
-            var modificador = new Colaborador
+            catch (UnauthorizedAccessException ex)
             {
-                Id = usuario.Id,
-                Nombre = usuario.Nombre,
-                Rol = usuario.Rol
-            };
-
-            var resultado = await _servicioDeCategorias.EliminarCategoria(categoriaId,modificador);
-
-            if(resultado == 0)
-            {
-                return NotFound("La categoria no existe.");
+                return Unauthorized(ex.Message);
             }
-            if (resultado == 2)
+            catch (ArgumentException ex)
             {
-                return BadRequest("La categoria ya está inactiva.");
+                return BadRequest(ex.Message);
             }
-
-            return Ok("La categoria se desactivo correctamente.");
         }
+        [HttpDelete]
+        [Route("{categoriaId}")]
+        [Authorize(Roles = Constantes.ADMINISTRADOR)]
+        public async Task<IActionResult> DesactivarCategoria(string categoriaId)
+        {
+            if (string.IsNullOrWhiteSpace(categoriaId))
+            {
+                return BadRequest("El ID de la categoría es requerido.");
+            }
+
+            if (!ObjectId.TryParse(categoriaId, out _))
+            {
+                return BadRequest("El ID de la categoría no es válido.");
+            }
+
+            var usuarioId = UtilidadesUsuario.ObtenerIdUsuarioEnBaseAJWT(User);
+
+            if (string.IsNullOrWhiteSpace(usuarioId))
+            {
+                return Unauthorized("No se pudo identificar al usuario autenticado.");
+            }
+
+            try
+            {
+                var resultado = await _servicioDeCategorias.DesactivarCategoria(categoriaId, usuarioId);
+
+                if (resultado == 0)
+                {
+                    return NotFound("La categoría no existe.");
+                }
+
+                if (resultado == 2)
+                {
+                    return BadRequest("La categoría ya está inactiva.");
+                }
+
+                return Ok("La categoría se desactivó correctamente.");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+        }
+
     }
 }
