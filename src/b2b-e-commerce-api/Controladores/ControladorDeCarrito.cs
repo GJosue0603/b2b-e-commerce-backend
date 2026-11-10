@@ -1,11 +1,11 @@
 using b2b_e_commerce_bll;
 using b2b_e_commerce_models;
+using b2b_e_commerce_utilities;
 using b2b_e_commerce_utilities.Excepciones;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using System.Net;
-using System.Security.Claims;
 
 namespace b2b_e_commerce_api.Controladores
 {
@@ -22,8 +22,7 @@ namespace b2b_e_commerce_api.Controladores
             _servicioDeCarrito = servicioDeCarrito ?? throw new ArgumentNullException(nameof(servicioDeCarrito));
         }
 
-        // El claim "sub" puede llegar remapeado a NameIdentifier según el manejador de JWT
-        private string? UsuarioIdActual => User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        private string? UsuarioIdActual => UtilidadesDeUsuario.ObtenerIdUsuarioActual(User);
 
         [HttpGet]
         [Route("")]
@@ -41,7 +40,6 @@ namespace b2b_e_commerce_api.Controladores
             return Ok(res);
         }
 
-        // Agrega el producto con la cantidad indicada o reemplaza la cantidad si ya estaba en el carrito
         [HttpPut]
         [Route("items/{productoId}")]
         [Authorize(Roles = Constantes.COMPRADOR)]

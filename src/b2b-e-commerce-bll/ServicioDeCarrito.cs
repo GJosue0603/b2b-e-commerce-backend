@@ -51,7 +51,7 @@ namespace b2b_e_commerce_bll
 
             var fechaYHora = DateTime.UtcNow;
 
-            // Cada paso es una operación atómica en Mongo, por lo que cambios simultáneos del mismo usuario no se pisan
+            // Cada paso es una operación atómica en Mongo, por lo que cambios simultáneos del mismo usuario no provocarán inconsistencias, pero sí podrían generar errores de límite de productos distintos en el carrito. En ese caso, se intenta agregar nuevamente.
             var actualizados = await _repositorioDeCarritos.ActualizarCantidadDeItem(usuarioId, productoId, cantidad, fechaYHora);
 
             if (actualizados == 0)
@@ -60,7 +60,6 @@ namespace b2b_e_commerce_bll
 
                 if (agregados == 0)
                 {
-                    // Otra petición pudo agregar el producto en este instante; si sigue sin estar, se alcanzó el máximo
                     actualizados = await _repositorioDeCarritos.ActualizarCantidadDeItem(usuarioId, productoId, cantidad, fechaYHora);
 
                     if (actualizados == 0)
@@ -105,7 +104,8 @@ namespace b2b_e_commerce_bll
             {
                 productos.TryGetValue(item.ProductoId, out var producto);
 
-                // shortcut: siempre precio regular, falta la acreditación PYME; usar PrecioPyme cuando exista.
+                // de mom ento solo existe PrecioRegular, y es decimal, pero se redondea a 2 decimales para evitar problemas de precisión en cálculos de dinero.
+                // podemos agregar PrecioPyme cuando se agregue la acreditación PYME, y usarlo en lugar de PrecioRegular cuando corresponda.
                 var precio = producto == null ? 0m : Math.Round((decimal)producto.PrecioRegular, 2);
 
                 respuesta.Items.Add(new RespuestaDeItemCarrito
