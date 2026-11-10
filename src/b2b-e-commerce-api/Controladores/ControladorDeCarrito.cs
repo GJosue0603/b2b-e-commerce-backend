@@ -1,0 +1,133 @@
+using b2b_e_commerce_bll;
+using b2b_e_commerce_models;
+using b2b_e_commerce_utilities.Excepciones;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
+using System.Net;
+using System.Security.Claims;
+
+namespace b2b_e_commerce_api.Controladores
+{
+    [ApiController]
+    [Route("v1/carrito")]
+    [Produces("application/json")]
+    [Authorize]
+    public class ControladorDeCarrito : Controller
+    {
+        private readonly IServicioDeCarrito _servicioDeCarrito;
+
+        public ControladorDeCarrito(IServicioDeCarrito servicioDeCarrito)
+        {
+            _servicioDeCarrito = servicioDeCarrito ?? throw new ArgumentNullException(nameof(servicioDeCarrito));
+        }
+
+        // El claim "sub" puede llegar remapeado a NameIdentifier según el manejador de JWT
+        private string? UsuarioIdActual => User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        [HttpGet]
+        [Route("")]
+        [Authorize(Roles = Constantes.COMPRADOR)]
+        [ProducesResponseType(typeof(RespuestaDeCarrito), (int)HttpStatusCode.OK)]
+        public async Task<IActionResult> ObtenerCarrito()
+        {
+            if (UsuarioIdActual == null)
+            {
+                return Unauthorized();
+            }
+
+            var res = await _servicioDeCarrito.ObtenerCarrito(UsuarioIdActual);
+
+            return Ok(res);
+        }
+
+        // Agrega el producto con la cantidad indicada o reemplaza la cantidad si ya estaba en el carrito
+        [HttpPut]
+        [Route("items/{productoId}")]
+        [Authorize(Roles = Constantes.COMPRADOR)]
+        [ProducesResponseType(typeof(RespuestaDeCarrito), (int)HttpStatusCode.OK)]
+        public async Task<IActionResult> EstablecerCantidad(string productoId, [FromBody] SolicitudDeItemCarrito solicitud)
+        {
+            if (UsuarioIdActual == null)
+            {
+                return Unauthorized();
+            }
+
+            if (string.IsNullOrWhiteSpace(productoId))
+            {
+                return BadRequest("El ProductoId es requerido.");
+            }
+
+            if (!ObjectId.TryParse(productoId, out var id))
+            {
+                return BadRequest("ProductoId debe ser un ObjectId (24 hex string) válido.");
+            }
+
+            if (solicitud == null)
+            {
+                return BadRequest("La cantidad es requerida.");
+            }
+
+            try
+            {
+                var res = await _servicioDeCarrito.EstablecerCantidad(UsuarioIdActual, productoId, solicitud.Cantidad);
+
+                return Ok(res);
+            }
+            catch (ProductoNoEncontradoException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (ExistenciasInsuficientesException ex)
+            {
+                return Conflict(ex.Message);
+            }
+            catch (CarritoInvalidoException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete]
+        [Route("items/{productoId}")]
+        [Authorize(Roles = Constantes.COMPRADOR)]
+        [ProducesResponseType(typeof(RespuestaDeCarrito), (int)HttpStatusCode.OK)]
+        public async Task<IActionResult> QuitarProducto(string productoId)
+        {
+            if (UsuarioIdActual == null)
+            {
+                return Unauthorized();
+            }
+
+            if (string.IsNullOrWhiteSpace(productoId))
+            {
+                return BadRequest("El ProductoId es requerido.");
+            }
+
+            if (!ObjectId.TryParse(productoId, out var id))
+            {
+                return BadRequest("ProductoId debe ser un ObjectId (24 hex string) válido.");
+            }
+
+            var res = await _servicioDeCarrito.QuitarProducto(UsuarioIdActual, productoId);
+
+            return Ok(res);
+        }
+
+        [HttpDelete]
+        [Route("")]
+        [Authorize(Roles = Constantes.COMPRADOR)]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        public async Task<IActionResult> VaciarCarrito()
+        {
+            if (UsuarioIdActual == null)
+            {
+                return Unauthorized();
+            }
+
+            await _servicioDeCarrito.VaciarCarrito(UsuarioIdActual);
+
+            return NoContent();
+        }
+    }
+}

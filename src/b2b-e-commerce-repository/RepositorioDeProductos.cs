@@ -13,6 +13,7 @@ namespace b2b_e_commerce_repository
             int numeroDePagina = 1,
             int cantidadPorPagina = 25
         );
+        Task<List<Producto>> ObtenerProductosPorIds(IEnumerable<string> ids);
     }
     public class RepositorioDeProductos : IRepositorioDeProductos
     {
@@ -38,6 +39,13 @@ namespace b2b_e_commerce_repository
             var producto = await _collection.Find(filter).FirstOrDefaultAsync();
 
             return producto;
+        }
+
+        public async Task<List<Producto>> ObtenerProductosPorIds(IEnumerable<string> ids)
+        {
+            var filtro = Builders<Producto>.Filter.In(p => p.Id, ids);
+
+            return await _collection.Find(filtro).ToListAsync();
         }
 
         public async Task<ResultadoPaginado<Producto>> ObtenerListaDeProductos(
