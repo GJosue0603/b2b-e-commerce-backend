@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="libphonenumber-csharp" Version="3.7.1.306" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
   </ItemGroup>
 
 </Project>

@@ -86,6 +86,7 @@ namespace b2b_e_commerce_api
             servicios.AddScoped<IServicioDeAutenticacion, ServicioDeAutenticacion>();
             servicios.AddScoped<IServicioDeProductos, ServicioDeProductos>();
             servicios.AddScoped<IServicioDeCategorias, ServicioDeCategorias>();
+            servicios.AddScoped<IServicioDeCarrito, ServicioDeCarrito>();
 
             // Repositorios
             var mongoConnectionString = configuracion["Mongo:ConnectionString"];
@@ -99,6 +100,7 @@ namespace b2b_e_commerce_api
             servicios.AddScoped<IRepositorioDeRegistrosPendientes, RepositorioDeRegistrosPendientes>();
             servicios.AddScoped<IRepositorioDeProductos, RepositorioDeProductos>();
             servicios.AddScoped<IRepositorioDeCategorias, RepositorioDeCategorias>();
+            servicios.AddScoped<IRepositorioDeCarritos, RepositorioDeCarritos>();
 
             return servicios;
         }
