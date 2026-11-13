@@ -60,7 +60,6 @@ namespace b2b_e_commerce_repository
             filter &= Builders<Carrito>.Filter.Not(Builders<Carrito>.Filter.ElemMatch(c => c.Items, i => i.ProductoId == item.ProductoId));
             filter &= Builders<Carrito>.Filter.SizeLt(c => c.Items, maximoDeItems);
             var update = Builders<Carrito>.Update
-                .SetOnInsert(c => c.UsuarioId, usuarioId)
                 .SetOnInsert(c => c.FechaCreacion, fechaYHora)
                 .Push(c => c.Items, item)
                 .Set(c => c.FechaModificacion, fechaYHora);
