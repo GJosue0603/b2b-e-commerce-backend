@@ -56,25 +56,26 @@ namespace b2b_e_commerce_repository
 
         public async Task<long> AgregarItem(string usuarioId, ItemCarrito item, int maximoDeItems, DateTime fechaYHora)
         {
-            // Crea el carrito vacío solo si no existe; al usar el Id del usuario no puede duplicarse
-            var filterDeCarrito = Builders<Carrito>.Filter.Eq(c => c.Id, usuarioId);
-            var updateDeCarrito = Builders<Carrito>.Update
-                .SetOnInsert(c => c.UsuarioId, usuarioId)
-                .SetOnInsert(c => c.Items, new List<ItemCarrito>())
-                .SetOnInsert(c => c.FechaCreacion, fechaYHora);
-
-            await _collection.UpdateOneAsync(filterDeCarrito, updateDeCarrito, new UpdateOptions { IsUpsert = true });
-
             var filter = Builders<Carrito>.Filter.Eq(c => c.Id, usuarioId);
             filter &= Builders<Carrito>.Filter.Not(Builders<Carrito>.Filter.ElemMatch(c => c.Items, i => i.ProductoId == item.ProductoId));
             filter &= Builders<Carrito>.Filter.SizeLt(c => c.Items, maximoDeItems);
             var update = Builders<Carrito>.Update
+                .SetOnInsert(c => c.UsuarioId, usuarioId)
+                .SetOnInsert(c => c.FechaCreacion, fechaYHora)
                 .Push(c => c.Items, item)
                 .Set(c => c.FechaModificacion, fechaYHora);
 
-            var res = await _collection.UpdateOneAsync(filter, update);
+            try
+            {
+                // Upsert: crea el carrito con el item si no existe (_id = usuarioId, por lo que no puede duplicarse)
+                var res = await _collection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
 
-            return res.ModifiedCount;
+                return res.UpsertedId != null ? 1 : res.ModifiedCount;
+            }
+            catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
+            {
+                return 0;
+            }
         }
 
         public async Task<long> QuitarItem(string usuarioId, string productoId, DateTime fechaYHora)

@@ -15,6 +15,8 @@ namespace b2b_e_commerce_api.Controladores
     [Authorize]
     public class ControladorDeCarrito : Controller
     {
+        private const string RolesConCarrito = Constantes.COMPRADOR + "," + Constantes.VENDEDOR + "," + Constantes.ADMINISTRADOR;
+
         private readonly IServicioDeCarrito _servicioDeCarrito;
 
         public ControladorDeCarrito(IServicioDeCarrito servicioDeCarrito)
@@ -22,19 +24,14 @@ namespace b2b_e_commerce_api.Controladores
             _servicioDeCarrito = servicioDeCarrito ?? throw new ArgumentNullException(nameof(servicioDeCarrito));
         }
 
-        private string? UsuarioIdActual => UtilidadesUsuario.ObtenerIdUsuarioEnBaseAJWT(User);
+        private string UsuarioIdActual => UtilidadesUsuario.ObtenerIdUsuarioEnBaseAJWT(User)!;
 
         [HttpGet]
         [Route("")]
-        [Authorize(Roles = Constantes.COMPRADOR)]
+        [Authorize(Roles = RolesConCarrito)]
         [ProducesResponseType(typeof(RespuestaDeCarrito), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> ObtenerCarrito()
         {
-            if (UsuarioIdActual == null)
-            {
-                return Unauthorized();
-            }
-
             var res = await _servicioDeCarrito.ObtenerCarrito(UsuarioIdActual);
 
             return Ok(res);
@@ -42,15 +39,10 @@ namespace b2b_e_commerce_api.Controladores
 
         [HttpPut]
         [Route("items/{productoId}")]
-        [Authorize(Roles = Constantes.COMPRADOR)]
+        [Authorize(Roles = RolesConCarrito)]
         [ProducesResponseType(typeof(RespuestaDeCarrito), (int)HttpStatusCode.OK)]
-        public async Task<IActionResult> EstablecerCantidad(string productoId, [FromBody] SolicitudDeItemCarrito solicitud)
+        public async Task<IActionResult> AgregarProductoAlCarrito(string productoId, [FromBody] SolicitudDeItemCarrito solicitud)
         {
-            if (UsuarioIdActual == null)
-            {
-                return Unauthorized();
-            }
-
             if (string.IsNullOrWhiteSpace(productoId))
             {
                 return BadRequest("El ProductoId es requerido.");
@@ -68,7 +60,7 @@ namespace b2b_e_commerce_api.Controladores
 
             try
             {
-                var res = await _servicioDeCarrito.EstablecerCantidad(UsuarioIdActual, productoId, solicitud.Cantidad);
+                var res = await _servicioDeCarrito.AgregarProductoAlCarrito(UsuarioIdActual, productoId, solicitud.Cantidad);
 
                 return Ok(res);
             }
@@ -88,15 +80,10 @@ namespace b2b_e_commerce_api.Controladores
 
         [HttpDelete]
         [Route("items/{productoId}")]
-        [Authorize(Roles = Constantes.COMPRADOR)]
+        [Authorize(Roles = RolesConCarrito)]
         [ProducesResponseType(typeof(RespuestaDeCarrito), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> QuitarProducto(string productoId)
         {
-            if (UsuarioIdActual == null)
-            {
-                return Unauthorized();
-            }
-
             if (string.IsNullOrWhiteSpace(productoId))
             {
                 return BadRequest("El ProductoId es requerido.");
@@ -114,15 +101,10 @@ namespace b2b_e_commerce_api.Controladores
 
         [HttpDelete]
         [Route("")]
-        [Authorize(Roles = Constantes.COMPRADOR)]
+        [Authorize(Roles = RolesConCarrito)]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         public async Task<IActionResult> VaciarCarrito()
         {
-            if (UsuarioIdActual == null)
-            {
-                return Unauthorized();
-            }
-
             await _servicioDeCarrito.VaciarCarrito(UsuarioIdActual);
 
             return NoContent();

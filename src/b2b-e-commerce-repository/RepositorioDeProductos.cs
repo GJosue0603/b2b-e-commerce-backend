@@ -45,7 +45,9 @@ namespace b2b_e_commerce_repository
         {
             var filtro = Builders<Producto>.Filter.In(p => p.Id, ids);
 
-            return await _collection.Find(filtro).ToListAsync();
+            return await _collection.Find(filtro)
+                .Project(p => new Producto { Id = p.Id, Nombre = p.Nombre, PrecioRegular = p.PrecioRegular, Existencias = p.Existencias, Activo = p.Activo })
+                .ToListAsync();
         }
 
         public async Task<ResultadoPaginado<Producto>> ObtenerListaDeProductos(

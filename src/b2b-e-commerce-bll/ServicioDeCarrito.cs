@@ -7,7 +7,7 @@ namespace b2b_e_commerce_bll
     public interface IServicioDeCarrito
     {
         Task<RespuestaDeCarrito> ObtenerCarrito(string usuarioId);
-        Task<RespuestaDeCarrito> EstablecerCantidad(string usuarioId, string productoId, int cantidad);
+        Task<RespuestaDeCarrito> AgregarProductoAlCarrito(string usuarioId, string productoId, int cantidad);
         Task<RespuestaDeCarrito> QuitarProducto(string usuarioId, string productoId);
         Task VaciarCarrito(string usuarioId);
     }
@@ -30,7 +30,7 @@ namespace b2b_e_commerce_bll
             return await ConstruirRespuesta(carrito);
         }
 
-        public async Task<RespuestaDeCarrito> EstablecerCantidad(string usuarioId, string productoId, int cantidad)
+        public async Task<RespuestaDeCarrito> AgregarProductoAlCarrito(string usuarioId, string productoId, int cantidad)
         {
             if (cantidad < 1 || cantidad > Constantes.MAXIMO_CANTIDAD_POR_PRODUCTO)
             {
@@ -50,22 +50,22 @@ namespace b2b_e_commerce_bll
             }
 
             var fechaYHora = DateTime.UtcNow;
+            var carrito = await _repositorioDeCarritos.ObtenerCarritoPorUsuario(usuarioId);
+            var yaExiste = carrito != null && carrito.Items.Any(i => i.ProductoId == productoId);
 
-            // Cada paso es una operación atómica en Mongo, por lo que cambios simultáneos del mismo usuario no provocarán inconsistencias, pero sí podrían generar errores de límite de productos distintos en el carrito. En ese caso, se intenta agregar nuevamente.
-            var actualizados = await _repositorioDeCarritos.ActualizarCantidadDeItem(usuarioId, productoId, cantidad, fechaYHora);
+            long modificados = yaExiste
+                ? await _repositorioDeCarritos.ActualizarCantidadDeItem(usuarioId, productoId, cantidad, fechaYHora)
+                : await _repositorioDeCarritos.AgregarItem(usuarioId, new ItemCarrito { ProductoId = productoId, Cantidad = cantidad }, Constantes.MAXIMO_PRODUCTOS_DISTINTOS_EN_CARRITO, fechaYHora);
 
-            if (actualizados == 0)
+            if (modificados == 0)
             {
-                var agregados = await _repositorioDeCarritos.AgregarItem(usuarioId, new ItemCarrito { ProductoId = productoId, Cantidad = cantidad }, Constantes.MAXIMO_PRODUCTOS_DISTINTOS_EN_CARRITO, fechaYHora);
+                modificados = yaExiste
+                    ? await _repositorioDeCarritos.AgregarItem(usuarioId, new ItemCarrito { ProductoId = productoId, Cantidad = cantidad }, Constantes.MAXIMO_PRODUCTOS_DISTINTOS_EN_CARRITO, fechaYHora)
+                    : await _repositorioDeCarritos.ActualizarCantidadDeItem(usuarioId, productoId, cantidad, fechaYHora);
 
-                if (agregados == 0)
+                if (modificados == 0)
                 {
-                    actualizados = await _repositorioDeCarritos.ActualizarCantidadDeItem(usuarioId, productoId, cantidad, fechaYHora);
-
-                    if (actualizados == 0)
-                    {
-                        throw new CarritoInvalidoException($"El carrito admite como máximo {Constantes.MAXIMO_PRODUCTOS_DISTINTOS_EN_CARRITO} productos distintos.");
-                    }
+                    throw new CarritoInvalidoException($"El carrito admite como máximo {Constantes.MAXIMO_PRODUCTOS_DISTINTOS_EN_CARRITO} productos distintos.");
                 }
             }
 
