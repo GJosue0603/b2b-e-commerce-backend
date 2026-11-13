@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace b2b_e_commerce_utilities
@@ -7,7 +6,7 @@ namespace b2b_e_commerce_utilities
     {
         public static string? ObtenerIdUsuarioEnBaseAJWT(ClaimsPrincipal usuario)
         {
-            return usuario.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? usuario.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            return usuario.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? usuario.FindFirst("sub")?.Value;
         }
     }
 }
