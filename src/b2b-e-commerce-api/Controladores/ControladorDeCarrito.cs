@@ -22,7 +22,7 @@ namespace b2b_e_commerce_api.Controladores
             _servicioDeCarrito = servicioDeCarrito ?? throw new ArgumentNullException(nameof(servicioDeCarrito));
         }
 
-        private string? UsuarioIdActual => UtilidadesDeUsuario.ObtenerIdUsuarioActual(User);
+        private string? UsuarioIdActual => UtilidadesUsuario.ObtenerIdUsuarioEnBaseAJWT(User);
 
         [HttpGet]
         [Route("")]
