@@ -71,7 +71,7 @@ namespace b2b_e_commerce_repository
 
                 return res.UpsertedId != null ? 1 : res.ModifiedCount;
             }
-            catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
+            catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
             {
                 return 0;
             }
@@ -80,6 +80,7 @@ namespace b2b_e_commerce_repository
         public async Task<long> QuitarItem(string usuarioId, string productoId, DateTime fechaYHora)
         {
             var filter = Builders<Carrito>.Filter.Eq(c => c.Id, usuarioId);
+            filter &= Builders<Carrito>.Filter.ElemMatch(c => c.Items, i => i.ProductoId == productoId);
             var update = Builders<Carrito>.Update
                 .PullFilter(c => c.Items, i => i.ProductoId == productoId)
                 .Set(c => c.FechaModificacion, fechaYHora);

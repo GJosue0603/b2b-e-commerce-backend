@@ -18,13 +18,12 @@ namespace b2b_e_commerce_api.Controladores
         private const string RolesConCarrito = Constantes.COMPRADOR + "," + Constantes.VENDEDOR + "," + Constantes.ADMINISTRADOR;
 
         private readonly IServicioDeCarrito _servicioDeCarrito;
+        private string UsuarioIdActual => UtilidadesUsuario.ObtenerIdUsuarioEnBaseAJWT(User)!;
 
         public ControladorDeCarrito(IServicioDeCarrito servicioDeCarrito)
         {
             _servicioDeCarrito = servicioDeCarrito ?? throw new ArgumentNullException(nameof(servicioDeCarrito));
         }
-
-        private string UsuarioIdActual => UtilidadesUsuario.ObtenerIdUsuarioEnBaseAJWT(User)!;
 
         [HttpGet]
         [Route("")]
@@ -102,12 +101,12 @@ namespace b2b_e_commerce_api.Controladores
         [HttpDelete]
         [Route("")]
         [Authorize(Roles = RolesConCarrito)]
-        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> VaciarCarrito()
         {
             await _servicioDeCarrito.VaciarCarrito(UsuarioIdActual);
 
-            return NoContent();
+            return Ok("El carrito se vació correctamente.");
         }
     }
 }
