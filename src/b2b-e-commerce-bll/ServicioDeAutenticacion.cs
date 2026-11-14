@@ -111,7 +111,7 @@ namespace b2b_e_commerce_bll
 
             if (usuario == null || !usuario.Activo || !UtilidadesContrasena.Verificar(loginDeUsuario.Contrasena, usuario.ContrasenaHash))
             {
-                throw new UnauthorizedAccessException("Correo o contraseña incorrectos");
+                throw new UnauthorizedAccessException("Correo o contraseña incorrectos.");
             }
 
             var token = _proveedorDeTokens.CrearToken(usuario);

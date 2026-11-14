@@ -19,33 +19,26 @@ namespace b2b_e_commerce_bll
     public class ServicioDeCategorias : IServicioDeCategorias
     {
         private readonly IRepositorioDeCategorias _repositorioDeCategorias;
-        private readonly IRepositorioDeUsuarios _repositorioDeUsuarios;
-        public ServicioDeCategorias(IRepositorioDeCategorias repositorioDeCategorias, IRepositorioDeUsuarios repositorioDeUsuarios)
+        private readonly IServicioDeValidacionDeUsuarios _servicioDeValidacionDeUsuarios;
+        public ServicioDeCategorias(IRepositorioDeCategorias repositorioDeCategorias, IServicioDeValidacionDeUsuarios servicioDeValidacionDeUsuarios)
         {
             _repositorioDeCategorias = repositorioDeCategorias ?? throw new ArgumentNullException(nameof(repositorioDeCategorias));
-            _repositorioDeUsuarios = repositorioDeUsuarios ?? throw new ArgumentNullException(nameof(repositorioDeUsuarios));
+            _servicioDeValidacionDeUsuarios = servicioDeValidacionDeUsuarios ?? throw new ArgumentNullException(nameof(servicioDeValidacionDeUsuarios));
         }
+
         public async Task<Categoria?> ObtenerCategoriaPorId(string id)
         {
             return await _repositorioDeCategorias.ObtenerCategoriaPorId(id);
         }
-        public async Task<ResultadoPaginado<Categoria>> ObtenerListaDeCategorias(
-           bool? activo = null,
-           int numeroDePagina = 1,
-           int cantidadPorPagina = 25
-        )
+
+        public async Task<ResultadoPaginado<Categoria>> ObtenerListaDeCategorias(bool? activo = null, int numeroDePagina = 1, int cantidadPorPagina = 25)
         {
             return await _repositorioDeCategorias.ObtenerListaDeCategorias(activo, numeroDePagina, cantidadPorPagina);
         }
 
         public async Task<Categoria> InsertarCategoria(SolicitudDeCategoria solicitud, string usuarioId)
         {
-            var usuario = await _repositorioDeUsuarios.ObtenerUsuarioPorId(usuarioId);
-
-            if (usuario == null || !usuario.Activo)
-            {
-                throw new UnauthorizedAccessException("Usuario no autorizado o inactivo.");
-            }
+            var usuario = await _servicioDeValidacionDeUsuarios.ValidarUsuario(usuarioId);
 
             var nombre = UtilidadesTexto.NormalizarTexto(solicitud.Nombre);
 
@@ -75,7 +68,7 @@ namespace b2b_e_commerce_bll
 
         public async Task<Categoria?> ModificarCategoria(string id, SolicitudDeCategoria solicitud, string usuarioId)
         {
-            var usuario = await _repositorioDeUsuarios.ObtenerUsuarioPorId(usuarioId);
+            var usuario = await _servicioDeValidacionDeUsuarios.ValidarUsuario(usuarioId);
 
             if (usuario == null || !usuario.Activo)
             {
@@ -106,7 +99,7 @@ namespace b2b_e_commerce_bll
 
         public async Task<int> DesactivarCategoria(string id, string usuarioId)
         {
-            var usuario = await _repositorioDeUsuarios.ObtenerUsuarioPorId(usuarioId);
+            var usuario = await _servicioDeValidacionDeUsuarios.ValidarUsuario(usuarioId);
 
             if (usuario == null || !usuario.Activo)
             {
@@ -141,6 +134,5 @@ namespace b2b_e_commerce_bll
 
             return 0;
         }
-
     }
 }
