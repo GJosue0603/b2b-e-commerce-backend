@@ -67,13 +67,24 @@ namespace b2b_e_commerce_bll
 
             if (modificados == 0)
             {
-                modificados = yaExiste
-                    ? await _repositorioDeCarritos.AgregarItem(usuarioId, new ItemCarrito { ProductoId = productoId, Cantidad = cantidad }, Constantes.MAXIMO_PRODUCTOS_DISTINTOS_EN_CARRITO, fechaYHora)
-                    : await _repositorioDeCarritos.ActualizarCantidadDeItem(usuarioId, productoId, cantidad, fechaYHora);
+                var carritoActual = await _repositorioDeCarritos.ObtenerCarritoPorUsuario(usuarioId);
+
+                if (carritoActual != null && carritoActual.Items.Any(i => i.ProductoId == productoId))
+                {
+                    modificados = await _repositorioDeCarritos.ActualizarCantidadDeItem(usuarioId, productoId, cantidad, fechaYHora);
+                }
+                else if (carritoActual != null && carritoActual.Items.Count >= Constantes.MAXIMO_PRODUCTOS_DISTINTOS_EN_CARRITO)
+                {
+                    throw new CarritoInvalidoException($"El carrito admite como máximo {Constantes.MAXIMO_PRODUCTOS_DISTINTOS_EN_CARRITO} productos distintos.");
+                }
+                else
+                {
+                    modificados = await _repositorioDeCarritos.AgregarItem(usuarioId, new ItemCarrito { ProductoId = productoId, Cantidad = cantidad }, Constantes.MAXIMO_PRODUCTOS_DISTINTOS_EN_CARRITO, fechaYHora);
+                }
 
                 if (modificados == 0)
                 {
-                    throw new CarritoInvalidoException($"El carrito admite como máximo {Constantes.MAXIMO_PRODUCTOS_DISTINTOS_EN_CARRITO} productos distintos.");
+                    throw new CarritoInvalidoException("No se pudo actualizar el carrito. Inténtalo nuevamente.");
                 }
             }
 

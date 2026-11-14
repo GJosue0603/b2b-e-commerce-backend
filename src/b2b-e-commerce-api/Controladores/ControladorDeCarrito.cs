@@ -18,13 +18,12 @@ namespace b2b_e_commerce_api.Controladores
         private const string RolesConCarrito = Constantes.COMPRADOR + "," + Constantes.VENDEDOR + "," + Constantes.ADMINISTRADOR;
 
         private readonly IServicioDeCarrito _servicioDeCarrito;
+        private readonly string usuarioIdActual = UtilidadesUsuario.ObtenerIdUsuarioEnBaseAJWT(User)!;
 
         public ControladorDeCarrito(IServicioDeCarrito servicioDeCarrito)
         {
             _servicioDeCarrito = servicioDeCarrito ?? throw new ArgumentNullException(nameof(servicioDeCarrito));
         }
-
-        private string UsuarioIdActual => UtilidadesUsuario.ObtenerIdUsuarioEnBaseAJWT(User)!;
 
         [HttpGet]
         [Route("")]
@@ -32,7 +31,7 @@ namespace b2b_e_commerce_api.Controladores
         [ProducesResponseType(typeof(RespuestaDeCarrito), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> ObtenerCarrito()
         {
-            var res = await _servicioDeCarrito.ObtenerCarrito(UsuarioIdActual);
+            var res = await _servicioDeCarrito.ObtenerCarrito(usuarioIdActual);
 
             return Ok(res);
         }
@@ -60,7 +59,7 @@ namespace b2b_e_commerce_api.Controladores
 
             try
             {
-                var res = await _servicioDeCarrito.AgregarProductoAlCarrito(UsuarioIdActual, productoId, solicitud.Cantidad);
+                var res = await _servicioDeCarrito.AgregarProductoAlCarrito(usuarioIdActual, productoId, solicitud.Cantidad);
 
                 return Ok(res);
             }
@@ -94,7 +93,7 @@ namespace b2b_e_commerce_api.Controladores
                 return BadRequest("ProductoId debe ser un ObjectId (24 hex string) válido.");
             }
 
-            var res = await _servicioDeCarrito.QuitarProducto(UsuarioIdActual, productoId);
+            var res = await _servicioDeCarrito.QuitarProducto(usuarioIdActual, productoId);
 
             return Ok(res);
         }
@@ -102,12 +101,12 @@ namespace b2b_e_commerce_api.Controladores
         [HttpDelete]
         [Route("")]
         [Authorize(Roles = RolesConCarrito)]
-        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> VaciarCarrito()
         {
-            await _servicioDeCarrito.VaciarCarrito(UsuarioIdActual);
+            await _servicioDeCarrito.VaciarCarrito(usuarioIdActual);
 
-            return NoContent();
+            return Ok("El carrito se vació correctamente.");
         }
     }
 }
