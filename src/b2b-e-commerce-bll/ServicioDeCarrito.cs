@@ -16,15 +16,20 @@ namespace b2b_e_commerce_bll
     {
         private readonly IRepositorioDeCarritos _repositorioDeCarritos;
         private readonly IRepositorioDeProductos _repositorioDeProductos;
+        private readonly IServicioDeValidacionDeUsuarios _servicioDeValidacionDeUsuarios;
 
-        public ServicioDeCarrito(IRepositorioDeCarritos repositorioDeCarritos, IRepositorioDeProductos repositorioDeProductos)
+        public ServicioDeCarrito(IRepositorioDeCarritos repositorioDeCarritos, IRepositorioDeProductos repositorioDeProductos, IServicioDeValidacionDeUsuarios servicioDeValidacionDeUsuarios)
         {
             _repositorioDeCarritos = repositorioDeCarritos ?? throw new ArgumentNullException(nameof(repositorioDeCarritos));
             _repositorioDeProductos = repositorioDeProductos ?? throw new ArgumentNullException(nameof(repositorioDeProductos));
+            _servicioDeValidacionDeUsuarios = servicioDeValidacionDeUsuarios ?? throw new ArgumentNullException(nameof(servicioDeValidacionDeUsuarios));
         }
 
         public async Task<RespuestaDeCarrito> ObtenerCarrito(string usuarioId)
         {
+            // Validar que el usuario exista y esté activo para acceder a su carrito
+            await _servicioDeValidacionDeUsuarios.ValidarUsuario(usuarioId);
+
             var carrito = await _repositorioDeCarritos.ObtenerCarritoPorUsuario(usuarioId);
 
             return await ConstruirRespuesta(carrito);
@@ -32,6 +37,9 @@ namespace b2b_e_commerce_bll
 
         public async Task<RespuestaDeCarrito> AgregarProductoAlCarrito(string usuarioId, string productoId, int cantidad)
         {
+            // Validar que el usuario exista y esté activo para acceder a su carrito
+            await _servicioDeValidacionDeUsuarios.ValidarUsuario(usuarioId);
+
             if (cantidad < 1 || cantidad > Constantes.MAXIMO_CANTIDAD_POR_PRODUCTO)
             {
                 throw new CarritoInvalidoException($"La cantidad debe estar entre 1 y {Constantes.MAXIMO_CANTIDAD_POR_PRODUCTO}.");
@@ -76,6 +84,9 @@ namespace b2b_e_commerce_bll
 
         public async Task<RespuestaDeCarrito> QuitarProducto(string usuarioId, string productoId)
         {
+            // Validar que el usuario exista y esté activo para acceder a su carrito
+            await _servicioDeValidacionDeUsuarios.ValidarUsuario(usuarioId);
+
             await _repositorioDeCarritos.QuitarItem(usuarioId, productoId, DateTime.UtcNow);
 
             var res = await _repositorioDeCarritos.ObtenerCarritoPorUsuario(usuarioId);
@@ -85,6 +96,9 @@ namespace b2b_e_commerce_bll
 
         public async Task VaciarCarrito(string usuarioId)
         {
+            // Validar que el usuario exista y esté activo para acceder a su carrito
+            await _servicioDeValidacionDeUsuarios.ValidarUsuario(usuarioId);
+
             await _repositorioDeCarritos.EliminarCarritoDeUsuario(usuarioId);
         }
 

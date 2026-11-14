@@ -87,6 +87,7 @@ namespace b2b_e_commerce_api
             servicios.AddScoped<IServicioDeProductos, ServicioDeProductos>();
             servicios.AddScoped<IServicioDeCategorias, ServicioDeCategorias>();
             servicios.AddScoped<IServicioDeCarrito, ServicioDeCarrito>();
+            servicios.AddScoped<IServicioDeValidacionDeUsuarios, ServicioDeValidacionDeUsuarios>();
 
             // Repositorios
             var mongoConnectionString = configuracion["Mongo:ConnectionString"];

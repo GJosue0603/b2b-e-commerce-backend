@@ -50,11 +50,7 @@ namespace b2b_e_commerce_repository
                 .ToListAsync();
         }
 
-        public async Task<ResultadoPaginado<Producto>> ObtenerListaDeProductos(
-            bool? activo = null,
-            int numeroDePagina = 1,
-            int cantidadPorPagina = 25
-        )
+        public async Task<ResultadoPaginado<Producto>> ObtenerListaDeProductos(bool? activo = null, int numeroDePagina = 1, int cantidadPorPagina = 25)
         {
             var filter = FilterDefinition<Producto>.Empty;
 
@@ -62,23 +58,6 @@ namespace b2b_e_commerce_repository
             {
                 filter &= Builders<Producto>.Filter.Eq(p => p.Activo, activo);
             }
-
-            var project = Builders<Producto>.Projection.Expression(producto => new Producto
-            {
-                Id = producto.Id,
-                Nombre = producto.Nombre,
-                Descripcion = producto.Descripcion,
-                Categoria = producto.Categoria,
-                PrecioRegular = producto.PrecioRegular,
-                PrecioPyme = producto.PrecioPyme,
-                Existencias = producto.Existencias,
-                ImagenUrl = producto.ImagenUrl,
-                Activo = producto.Activo,
-                CreadoPor = producto.CreadoPor,
-                FechaCreacion = producto.FechaCreacion,
-                ModificadoPor = producto.ModificadoPor,
-                FechaModificacion = producto.FechaModificacion
-            });
 
             var ordenar = Builders<Producto>.Sort.Descending(p => p.FechaCreacion)
                 .Descending(p => p.Nombre)
@@ -88,7 +67,7 @@ namespace b2b_e_commerce_repository
             int cantidadDeRegistrosAOmitir = checked((int)(((long)numeroDePagina - 1) * cantidadPorPagina));
 
             // Traer productos de base de datos
-            var ProductosTask = _collection
+            var productosTask = _collection
                 .Find(filter)
                 .Sort(ordenar)
                 .Skip(cantidadDeRegistrosAOmitir)
@@ -98,10 +77,10 @@ namespace b2b_e_commerce_repository
             // Traer cantidad total de productos
             var cantidadTotalTask = _collection.CountDocumentsAsync(filter);
 
-            await Task.WhenAll(ProductosTask, cantidadTotalTask);
+            await Task.WhenAll(productosTask, cantidadTotalTask);
 
             return new ResultadoPaginado<Producto>(
-                ProductosTask.Result,
+                productosTask.Result,
                 cantidadTotalTask.Result,
                 numeroDePagina,
                 cantidadPorPagina
